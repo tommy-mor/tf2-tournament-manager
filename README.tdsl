@@ -1,0 +1,27 @@
+replacement for keep, tdsl/wiki
+to practice fulcro, let me mentally be free of current sorter
+
+frontpage which incentivizes revisiting tags. has undo-history
+maybe social features.
+
+usable on mobile.
+
+
+
+
+Fulcro tdsl{
+
+  Place notes for notes to go after keep, which is high.
+
+  search autocomplete tags.
+  same filters as current tdsl.
+  frontpage with doc preview, last edit times, edit frequency, sorted. 
+
+  dropdown thing as in [:keep/title "[:keep/id \"artsd\""]
+  
+  current drug status indicator
+
+  Practice making robust, pretty applications. 
+  Have Nate use it. Social features? share a ns with a person. 
+}
+
