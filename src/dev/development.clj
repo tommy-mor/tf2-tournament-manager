@@ -1,9 +1,9 @@
 (ns development
-(:require
-  [clojure.tools.namespace.repl :as tools-ns :refer [set-refresh-dirs]]
-  [mount.core :as mount]
-  ;; this is the top-level dependent component...mount will find the rest via ns requires
-  [app.server-components.http-server :refer [http-server]]))
+  (:require
+   [clojure.tools.namespace.repl :as tools-ns :refer [set-refresh-dirs]]
+   [mount.core :as mount]
+   ;; this is the top-level dependent component...mount will find the rest via ns requires
+   [app.server-components.http-server :refer [http-server]]))
 
 (defn start
   "Start the web server"
