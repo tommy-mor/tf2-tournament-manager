@@ -42,24 +42,23 @@
 
 (defn build-parser [db-connection]
   (let [real-parser (p/parallel-parser
-                      {::p/mutate  pc/mutate-async
-                       ::p/env     {::p/reader               [p/map-reader pc/parallel-reader
-                                                              pc/open-ident-reader p/env-placeholder-reader]
-                                    ::p/placeholder-prefixes #{">"}
-                                    ::pc/mutation-join-globals [:tempids]}
-                       ::p/plugins [(pc/connect-plugin {::pc/register all-resolvers})
-                                    (p/env-wrap-plugin (fn [env]
-                                                         ;; Here is where you can dynamically add things to the resolver/mutation
-                                                         ;; environment, like the server config, database connections, etc.
-                                                         (assoc env
-                                                           :db @db-connection ; real datomic would use (d/db db-connection)
-                                                           :connection db-connection
-                                                           :config config)))
-                                    (preprocess-parser-plugin log-requests)
-                                    p/error-handler-plugin
-                                    p/request-cache-plugin
-                                    (p/post-process-parser-plugin p/elide-not-found)
-                                    p/trace-plugin]})
+                     {::p/mutate  pc/mutate-async
+                      ::p/env     {::p/reader               [p/map-reader pc/parallel-reader
+                                                             pc/open-ident-reader p/env-placeholder-reader]
+                                   ::p/placeholder-prefixes #{">"}
+                                   ::pc/mutation-join-globals [:tempids]}
+                      ::p/plugins [(pc/connect-plugin {::pc/register all-resolvers})
+                                   (p/env-wrap-plugin (fn [env]
+                                                        ;; Here is where you can dynamically add things to the resolver/mutation
+                                                        ;; environment, like the server config, database connections, etc.
+                                                        (assoc env
+                                                               :db @db-connection ; real datomic would use (d/db db-connection)
+                                                               :connection db-connection
+                                                               :config config)))
+                                   (preprocess-parser-plugin log-requests)
+                                   p/error-handler-plugin
+                                   (p/post-process-parser-plugin p/elide-not-found)
+                                   p/trace-plugin]})
         ;; NOTE: Add -Dtrace to the server JVM to enable Fulcro Inspect query performance traces to the network tab.
         ;; Understand that this makes the network responses much larger and should not be used in production.
         trace?      (not (nil? (System/getProperty "trace")))]
