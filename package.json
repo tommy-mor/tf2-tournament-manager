@@ -14,7 +14,7 @@
         "client/nodejs": "npx shadow-cljs node-repl",
         "server": "clojure -A:dev:dev-repl -J-Dtrace -J-Dguardrails.enabled=true",
         "start": "npx run-p client/server server",
-		"build": "clj -T:build jar"
+		"build": "clojure -T:build jar"
     },
     "devDependencies": {
         "highlight.js": "^9.13.1",
