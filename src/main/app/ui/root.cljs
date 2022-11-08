@@ -142,7 +142,7 @@
    :route-segment ["main"]}
   (div :.ui.container.segment
     (h3 "Main")
-    (p (str "Welcome to the Fulcro template. "
+    (p (str "this site will be mge.tf eventually"
          "The Sign up and login functionalities are partially implemented, "
          "but mostly this is just a blank slate waiting "
          "for your project."))))
