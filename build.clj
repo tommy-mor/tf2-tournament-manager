@@ -1,5 +1,6 @@
 (ns build
-  (:require [clojure.tools.build.api :as b]))
+  (:require [clojure.tools.build.api :as b]
+            [shadow.cljs.devtools.api :as shadow]))
 
 (def lib 'tommy/ftdsl)
 (def version (format "1.2.%s" (b/git-count-revs nil)))
@@ -8,10 +9,14 @@
 (def uber-file (format "target/%s-%s-standalone.jar" (name lib) version))
 
 (defn clean [_]
-  (b/delete {:path "target"}))
+  (b/delete {:path "target"})
+  (b/delete {:path "resources/public/"}))
 
 (defn jar [_]
   (clean nil)
+  (b/process {:command-args ["npx" "shadow-cljs" "release" ":main"]})
+  #_(shadow/release :main {:verbose true})  ;; TODO why doesnt this work??
+  (println "done with shadow")
   (b/copy-dir {:src-dirs ["src/main" "resources"]
                :target-dir class-dir})
   (b/compile-clj {:basis basis
@@ -21,4 +26,4 @@
   (b/uber {:class-dir class-dir
            :uber-file uber-file
            :basis basis
-           :main 'app.server.main})) 
+           :main 'app.server-main})) 

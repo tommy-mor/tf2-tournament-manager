@@ -1,5 +1,5 @@
 {;; Legal Origins for API request.
- :legal-origins                  #{"product.domain" "localhost"}
+ :legal-origins                  #{"mge.tf" "localhost"}
 
  :org.httpkit.server/config      {:port 8080}
 

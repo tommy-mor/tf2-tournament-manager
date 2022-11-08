@@ -3,8 +3,7 @@
  :builds {:main       {:target     :browser
                        :output-dir "resources/public/js/main"
                        :asset-path "/js/main"
-
-                       :modules    {:main {:init-fn app.client/init}}
+                       :modules {:main {:init-fn app.client/init}}
                        ;; guardrails checks only during dev
                        :dev        {:compiler-options
                                     {:external-config {:guardrails {}}}}
