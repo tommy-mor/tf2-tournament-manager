@@ -7,11 +7,12 @@
    [clojure.spec.alpha :as s]
    [xtdb.api :as xt]))
 
-(>defn all-account-ids
+(defn all-account-ids
   "Returns a sequence of UUIDs for all of the active accounts in the system"
   [db]
-  [any? => (s/coll-of uuid? :kind vector?)]
-  ["arstarst"])
+  (map (comp :xt/id first) (xt/q db '{:find [(pull e [:xt/id])]
+                                     :where [[e :type :account]
+                                             ]})))
 
 (defresolver all-users-resolver [{:keys [db]} input]
   {;;GIVEN nothing (e.g. this is usable as a root query)
@@ -23,11 +24,11 @@
 
 (>defn get-account [db id subquery]
   [any? uuid? vector? => (? map?)]
-  {:account/id "test"})
+  (xt/pull db subquery id))
 
 (defresolver account-resolver [{:keys [db] :as env} {:account/keys [id]}]
   {::pc/input  #{:account/id}
-   ::pc/output [:account/email :account/active?]}
-  (get-account db id [:account/email :account/active?]))
+   ::pc/output [:account/email]}
+  (get-account db id [:account/email]))
 
 (def resolvers [all-users-resolver account-resolver])
