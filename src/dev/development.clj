@@ -28,3 +28,5 @@
 (comment
   (start)
   (restart))
+
+(+ 3 3)

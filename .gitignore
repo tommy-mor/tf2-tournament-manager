@@ -63,3 +63,4 @@ resources/public/workspaces/*
 .calva/
 .lsp/.cache/
 .clj-kondo/.cache/
+data/

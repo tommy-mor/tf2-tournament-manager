@@ -1,12 +1,11 @@
 (ns app.model.session
   (:require
-    [app.model.mock-database :as db]
-    [datascript.core :as d]
-    [com.fulcrologic.guardrails.core :refer [>defn => | ?]]
-    [com.wsscode.pathom.connect :as pc :refer [defresolver defmutation]]
-    [taoensso.timbre :as log]
-    [clojure.spec.alpha :as s]
-    [com.fulcrologic.fulcro.server.api-middleware :as fmw]))
+   [app.model.mock-database :as db]
+   [com.fulcrologic.guardrails.core :refer [>defn => | ?]]
+   [com.wsscode.pathom.connect :as pc :refer [defresolver defmutation]]
+   [taoensso.timbre :as log]
+   [clojure.spec.alpha :as s]
+   [com.fulcrologic.fulcro.server.api-middleware :as fmw]))
 
 (defonce account-database (atom {}))
 

@@ -88,12 +88,12 @@
   (let [defaults-config (:ring.middleware/defaults-config config)
         legal-origins   (get config :legal-origins #{"localhost"})]
     (-> not-found-handler
-      (wrap-api "/api")
-      wrap-transit-params
-      wrap-transit-response
-      (wrap-html-routes)
-      ;; If you want to set something like session store, you'd do it against
-      ;; the defaults-config here (which comes from an EDN file, so it can't have
-      ;; code initialized).
-      ;; E.g. (wrap-defaults (assoc-in defaults-config [:session :store] (my-store)))
-      (wrap-defaults defaults-config))))
+        (wrap-api "/api")
+        wrap-transit-params
+        wrap-transit-response
+        (wrap-html-routes)
+        ;; If you want to set something like session store, you'd do it against
+        ;; the defaults-config here (which comes from an EDN file, so it can't have
+        ;; code initialized).
+        ;; E.g. (wrap-defaults (assoc-in defaults-config [:session :store] (my-store)))
+        (wrap-defaults defaults-config))))
