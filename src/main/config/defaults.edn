@@ -10,6 +10,7 @@
               :multipart  true
               :nested     true
               :urlencoded true}
+  :proxy true
   :cookies   true
   :responses {:absolute-redirects     true
               :content-types          true
@@ -19,7 +20,7 @@
   :session   true
   :security  {:anti-forgery   true
               :hsts           true
-              :ssl-redirect   false
+              :ssl-redirect   true
               :frame-options  :sameorigin
               :xss-protection {:enable? true
                                :mode    :block}}}}
