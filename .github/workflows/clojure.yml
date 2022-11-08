@@ -48,9 +48,16 @@ jobs:
       
     - name: build clojure
       run: yarn build
-      
-    - name: Release
-      uses: softprops/action-gh-release@v1
-      if: startsWith(github.ref, 'refs/tags/')
+
+	- name upload artifact
+      uses: actions/upload-artifact@v3
       with:
-        files: target/*-standalone.jar
+        name: ftdsl-jar
+        path: target/*.jar
+
+
+    #- name: Release
+      #uses: softprops/action-gh-release@v1
+      #if: startsWith(github.ref, 'refs/tags/')
+      #with:
+        #files: target/*-standalone.jar
