@@ -4,7 +4,8 @@
    [com.fulcrologic.guardrails.core :refer [>defn => | ?]]
    [com.wsscode.pathom.connect :as pc :refer [defresolver defmutation]]
    [taoensso.timbre :as log]
-   [clojure.spec.alpha :as s]))
+   [clojure.spec.alpha :as s]
+   [xtdb.api :as xt]))
 
 (>defn all-account-ids
   "Returns a sequence of UUIDs for all of the active accounts in the system"
@@ -17,8 +18,8 @@
    ;; I can output all accounts. NOTE: only ID is needed...other resolvers resolve the rest
    ::pc/output [{:all-accounts [:account/id]}]}
   {:all-accounts (mapv
-                   (fn [id] {:account/id id})
-                   (all-account-ids db))})
+                  (fn [id] {:account/id id})
+                  (all-account-ids db))})
 
 (>defn get-account [db id subquery]
   [any? uuid? vector? => (? map?)]

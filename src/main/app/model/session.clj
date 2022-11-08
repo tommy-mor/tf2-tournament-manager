@@ -5,7 +5,8 @@
    [com.wsscode.pathom.connect :as pc :refer [defresolver defmutation]]
    [taoensso.timbre :as log]
    [clojure.spec.alpha :as s]
-   [com.fulcrologic.fulcro.server.api-middleware :as fmw]))
+   [com.fulcrologic.fulcro.server.api-middleware :as fmw]
+   [xtdb.api :as xt]))
 
 (defonce account-database (atom {}))
 
@@ -28,15 +29,22 @@
         (let [new-session (merge existing-session mutation-response)]
           (assoc resp :session new-session))))))
 
-(defmutation login [env {:keys [username password]}]
+(defn get-account [db email]
+  (ffirst (xt/q db '{:find [(pull e [*])]
+                                  :where [[e :type :account]
+                                          [e :account/email email]]
+                                  :in [email]}
+                email)))
+
+(defmutation login [{:keys [db] :as env} {:keys [username password]}]
   {::pc/output [:session/valid? :account/name]}
   (log/info "Authenticating" username)
-  (let [{expected-email    :email
-         expected-password :password} (get @account-database username)]
+  (let [{expected-email    :account/email
+         expected-password :account/password} (get-account db username)]
     (if (and (= username expected-email) (= password expected-password))
       (response-updating-session env
-        {:session/valid? true
-         :account/name   username})
+                                 {:session/valid? true
+                                  :account/name   username})
       (do
         (log/error "Invalid credentials supplied for" username)
         (throw (ex-info "Invalid credentials" {:username username}))))))
@@ -45,10 +53,16 @@
   {::pc/output [:session/valid?]}
   (response-updating-session env {:session/valid? false :account/name ""}))
 
-(defmutation signup! [env {:keys [email password]}]
+(defn create-user! [{:keys [email password]}]
+  (xt/submit-tx db/conn [[::xt/put {:xt/id (random-uuid)
+                                    :type :account
+                                    :account/email email
+                                    :account/password password}]]))
+
+(defmutation signup! [env {:keys [email password] :as input}]
   {::pc/output [:signup/result]}
-  (swap! account-database assoc email {:email    email
-                                       :password password})
+  (create-user! {:email email :password password})
   {:signup/result "OK"})
+
 
 (def resolvers [current-session-resolver login logout signup!])
