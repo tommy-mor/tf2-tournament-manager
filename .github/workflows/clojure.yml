@@ -30,7 +30,7 @@ jobs:
         # Install just one or all simultaneously
         # The value must indicate a particular version of the tool, or use 'latest'
         # to always provision the latest version
-        cli: 1.11.1             # Clojure CLI based on tools.deps
+        cli: latest           # Clojure CLI based on tools.deps
         
     - name: Cache clojure dependencies
       uses: actions/cache@v3
