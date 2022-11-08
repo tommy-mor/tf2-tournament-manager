@@ -48,3 +48,8 @@ jobs:
       
     - name: build clojure
       run: yarn build
+      
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: target/*-standalone.jar
