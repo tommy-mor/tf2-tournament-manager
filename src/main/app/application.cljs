@@ -26,6 +26,13 @@
                                     {:url                "/api"
                                      :request-middleware secured-request-middleware})}
                 :global-eql-transform global-eql-transform}))
-
 (comment
   (-> SPA (::app/runtime-atom) deref ::app/indexes))
+
+
+
+
+
+
+
+

@@ -2,7 +2,7 @@
   (:require
     [app.model.session :as session]
     [clojure.string :as str]
-    [com.fulcrologic.fulcro.dom :as dom :refer [div ul li p h3 button b]]
+    [com.fulcrologic.fulcro.dom :as dom :refer [div ul li p h3 button b textarea ]]
     [com.fulcrologic.fulcro.dom.html-entities :as ent]
     [com.fulcrologic.fulcro.dom.events :as evt]
     [com.fulcrologic.fulcro.application :as app]
@@ -13,7 +13,8 @@
     [com.fulcrologic.fulcro.algorithms.merge :as merge]
     [com.fulcrologic.fulcro-css.css :as css]
     [com.fulcrologic.fulcro.algorithms.form-state :as fs]
-    [taoensso.timbre :as log]))
+    [taoensso.timbre :as log]
+    [app.ui.notes :as notes]))
 
 (defn field [{:keys [label valid? error-message] :as props}]
   (let [input-props (-> props (assoc :name label) (dissoc :label :valid? :error-message))]
@@ -157,7 +158,10 @@
        (div "TODO")))
 
 (dr/defrouter TopRouter [this props]
-  {:router-targets [Main Signup SignupSuccess Settings]})
+  {:router-targets [Main Signup
+                    notes/NotePage
+                    SignupSuccess
+                    Settings]})
 
 (def ui-top-router (comp/factory TopRouter))
 
@@ -189,6 +193,8 @@
                              :onClick (fn [] (dr/change-route this ["main"]))} "Main")
               (dom/a :.item {:classes [(when (= :settings current-tab) "active")]
                              :onClick (fn [] (dr/change-route this ["settings"]))} "Settings")
+              (dom/a :.item {:classes [(when (= :notes current-tab) "active")]
+                             :onClick (fn [] (dr/change-route this ["notes"]))} "Notes")
               (div :.right.menu
                    (ui-login login)))
          (div :.ui.grid
