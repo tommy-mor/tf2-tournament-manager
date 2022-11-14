@@ -39,13 +39,16 @@
 
 (defsc NoteEditor [this {:keys [:note/text :note/id] :as args}]
   {:query [:note/id :note/text :note/modified :note/created]
-   :ident (fn [] [:component/id :note-editor])}
+   :ident :note/id
+   :initial-state {:note/id :new :note/text ""}}
   
   (div :.ui.container.segment
        (div :.ui.form
             
             (div :.field
-                 (textarea {:rows 4 :value text}))
+                 (textarea {:rows 4
+                            :value text
+                            :onChange (fn [evt] (m/set-string! this :note/text :event evt))}))
             (div :.field
                  (button :.ui.button "submit")))))
 
