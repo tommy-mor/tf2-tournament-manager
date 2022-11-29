@@ -14,14 +14,15 @@
 
 (defn jar [_]
   (clean nil)
-  (b/process {:command-args ["npx" "shadow-cljs" "release" ":main"]})
-  #_(shadow/release :main {:verbose true})  ;; TODO why doesnt this work??
-  (println "done with shadow")
-  (b/copy-dir {:src-dirs ["src/main" "resources"]
-               :target-dir class-dir})
   (b/compile-clj {:basis basis
                   :src-dirs ["src/main"]
                   :class-dir class-dir})
+
+  (println "done with clj")
+  (b/process {:command-args ["npx" "shadow-cljs" "release" ":main"]})
+  #_(shadow/release :main {:verbose true})  ;; TODO why doesnt this work??
+  (b/copy-dir {:src-dirs ["src/main" "resources"]
+               :target-dir class-dir})
   
   (b/uber {:class-dir class-dir
            :uber-file uber-file

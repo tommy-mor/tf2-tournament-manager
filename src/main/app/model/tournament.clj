@@ -4,7 +4,15 @@
             [clojure.java.io :as io]
             [cheshire.core :refer [generate-string]]
             [clojure.java.shell :refer [sh]]
-            [next.jdbc :as jdbc]))
+            [babashka.pods :as pods]))
+
+(pods/load-pod 'org.babashka/go-sqlite3 "0.1.0")
+(require '[pod.babashka.go-sqlite3 :as sqlite])
+
+(def db "/sqlite/sourcemod-local.sq3")
+
+(sqlite/query db "select * from sqlite_schema")
+
 
 (def scopes ["me"
              "tournaments:read"
@@ -16,11 +24,6 @@
              "attachments:read"
              "attachments:write"
              "communities:manage"])
-
-(def db-spec {:dbtype "sqlite" :dbname "/sqlite/sourcemod-local.sq3"})
-
-
-(jdbc/execute! db-spec ["select * from .sqlite_master"])
 
 (defn make-options [tokens] {:headers {"Authorization-Type" "v2"}
                              :oauth-token (:access_token tokens)
