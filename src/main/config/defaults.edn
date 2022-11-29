@@ -23,4 +23,6 @@
               :ssl-redirect   false
               :frame-options  :sameorigin
               :xss-protection {:enable? true
-                               :mode    :block}}}}
+                               :mode    :block}}}
+
+ :nrepl-config {:port 7888}}

@@ -1,4 +1,4 @@
-(ns app.ui.notes
+(ns app.model.note
   (:require
    [app.model.session :as session]
    [clojure.string :as str]
@@ -15,14 +15,28 @@
    [com.fulcrologic.fulcro.algorithms.form-state :as fs]
    
    [com.fulcrologic.fulcro.dom.events :as evt]
-  
+   
    [com.fulcrologic.fulcro.data-fetch :as df]
    [taoensso.timbre :as log]))
 
-(defmutation edit-note [_]
+(js/console.log "ars")
+
+(defmutation select-note [_]
   (action [{:keys [state ref]}]
           (log/info "edit note action" ref)
           (swap! state assoc-in [:component/id :notes :ui/currently-editing] ref)))
+
+(defmutation edit-note [{:note/keys [id text]}]
+  
+  (action [{:keys [state]}]
+          (log/info "submit note action, " id text)
+          
+          (reset! state
+                  (-> @state
+                      (assoc-in [:note/id :new :note/text] "")
+                      (assoc-in [:component/id :notes :ui/currently-editing] [:note/id :new]))))
+  
+  (remote [env] true))
 
 (defsc Note [this {:keys [:note/text :note/id]}]
   {:query [:note/id :note/text :note/modified :note/created]
@@ -31,7 +45,7 @@
        (i :.edit.outline.icon {:style {:float "right"
                                        :cursor "pointer"}
                                :onClick (fn []
-                                          (comp/transact! this [(edit-note)]))})
+                                          (comp/transact! this [(select-note)]))})
        (pre text)))
 
 
@@ -50,7 +64,9 @@
                             :value text
                             :onChange (fn [evt] (m/set-string! this :note/text :event evt))}))
             (div :.field
-                 (button :.ui.button "submit")))))
+                 (button :.ui.button
+                         {:onClick (fn [] (comp/transact! this [(edit-note args)]))}
+                         "submit")))))
 
 (def ui-note-editor (comp/factory NoteEditor))
 

@@ -14,7 +14,7 @@
     [com.fulcrologic.fulcro-css.css :as css]
     [com.fulcrologic.fulcro.algorithms.form-state :as fs]
     [taoensso.timbre :as log]
-    [app.ui.notes :as notes]))
+    [app.model.note :as note]))
 
 (defn field [{:keys [label valid? error-message] :as props}]
   (let [input-props (-> props (assoc :name label) (dissoc :label :valid? :error-message))]
@@ -159,7 +159,7 @@
 
 (dr/defrouter TopRouter [this props]
   {:router-targets [Main Signup
-                    notes/NotePage
+                    note/NotePage
                     SignupSuccess
                     Settings]})
 
