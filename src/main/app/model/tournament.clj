@@ -3,16 +3,7 @@
             [hato.client :as hc]
             [clojure.java.io :as io]
             [cheshire.core :refer [generate-string]]
-            [clojure.java.shell :refer [sh]]
-            [babashka.pods :as pods]))
-
-(pods/load-pod 'org.babashka/go-sqlite3 "0.1.0")
-(require '[pod.babashka.go-sqlite3 :as sqlite])
-
-(def db "/sqlite/sourcemod-local.sq3")
-
-(sqlite/query db "select * from sqlite_schema")
-
+            [clojure.java.shell :refer [sh]]))
 
 (def scopes ["me"
              "tournaments:read"

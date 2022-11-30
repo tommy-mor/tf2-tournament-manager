@@ -11,7 +11,7 @@
 
 (defn stop
   "Stop the web server"
-  [] (mount/stop))
+  [] (mount/stop-except #'app.server-components.nrepl-server/nrepl-server))
 
 (defn restart
   "Stop, reload code, and restart the server. If there is a compile error, use:
@@ -29,4 +29,4 @@
   (start)
   (restart))
 
-(+ 3 3)
+

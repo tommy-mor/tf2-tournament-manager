@@ -21,6 +21,7 @@
 
 (defn wrap-api [handler uri]
   (fn [request]
+    (println "epic win")
     (if (= uri (:uri request))
       (handle-api-request
         (:transit-params request)
