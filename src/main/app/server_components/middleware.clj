@@ -85,7 +85,7 @@
 
 (defstate middleware
   :start
-  (let [defaults-config (assoc-in (:ring.middleware/defaults-config config) [:security :anti-forgery] false )
+  (let [defaults-config (:ring.middleware/defaults-config config)
         legal-origins   (get config :legal-origins #{"localhost"})]
     (-> not-found-handler
         (wrap-api "/api")

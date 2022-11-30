@@ -18,7 +18,7 @@
               :not-modified-responses true}
   :static    {:resources "public"}
   :session   true
-  :security  {:anti-forgery   true
+  :security  {:anti-forgery   false ;; because some api calls don't come from browser
               :hsts           true
               :ssl-redirect   false
               :frame-options  :sameorigin
