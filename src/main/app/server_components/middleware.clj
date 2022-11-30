@@ -21,11 +21,10 @@
 
 (defn wrap-api [handler uri]
   (fn [request]
-    (println "epic win")
     (if (= uri (:uri request))
       (handle-api-request
-        (:transit-params request)
-        (fn [tx] (parser {:ring/request request} tx)))
+       (:transit-params request)
+       (fn [tx] (parser {:ring/request request} tx)))
       (handler request))))
 
 ;; ================================================================================
@@ -86,7 +85,7 @@
 
 (defstate middleware
   :start
-  (let [defaults-config (:ring.middleware/defaults-config config)
+  (let [defaults-config (assoc-in (:ring.middleware/defaults-config config) [:security :anti-forgery] false )
         legal-origins   (get config :legal-origins #{"localhost"})]
     (-> not-found-handler
         (wrap-api "/api")
