@@ -14,7 +14,8 @@
     [com.fulcrologic.fulcro-css.css :as css]
     [com.fulcrologic.fulcro.algorithms.form-state :as fs]
     [taoensso.timbre :as log]
-    [app.model.note :as note]))
+    [app.model.note :as note]
+    [app.model.mge-servers :as mge]))
 
 (defn field [{:keys [label valid? error-message] :as props}]
   (let [input-props (-> props (assoc :name label) (dissoc :label :valid? :error-message))]
@@ -160,6 +161,7 @@
 (dr/defrouter TopRouter [this props]
   {:router-targets [Main Signup
                     note/NotePage
+                    mge/ServersPage
                     SignupSuccess
                     Settings]})
 
@@ -195,6 +197,8 @@
                              :onClick (fn [] (dr/change-route this ["settings"]))} "Settings")
               (dom/a :.item {:classes [(when (= :notes current-tab) "active")]
                              :onClick (fn [] (dr/change-route this ["notes"]))} "Notes")
+              (dom/a :.item {:classes [(when (= :servers current-tab) "active")]
+                             :onClick (fn [] (dr/change-route this ["servers"]))} "Servers")
               (div :.right.menu
                    (ui-login login)))
          (div :.ui.grid
