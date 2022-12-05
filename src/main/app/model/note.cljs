@@ -81,7 +81,7 @@
                  (dr/route-deferred [:component/id :notes]
                                     (fn load []
                                       (df/load! app
-                                                :notes
+                                                [:component/id :notes]
                                                 NotePage
                                                 {:post-mutation `dr/target-ready
                                                  :post-mutation-params
