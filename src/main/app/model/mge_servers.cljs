@@ -19,13 +19,45 @@
    [com.fulcrologic.fulcro.data-fetch :as df]
    [taoensso.timbre :as log]))
 
-(defsc Server [this {:keys [:server/id :server/last-pinged :server/remote-addr] :as props}]
-  {:query [:server/id :server/last-pinged :server/remote-addr]
+(defsc ServerPage [this {:keys [:server/id
+                                :server/last-pinged
+                                :server/game-addr
+                                :server/api-addr] :as props}]
+  {:query [:server/id
+           :server/last-pinged
+           :server/game-addr
+           :server/api-addr]
+   :ident :server/id
+   :route-segment ["server" :server/id]
+   :initial-state {}
+   :will-enter
+   (fn [app route-params]
+     (log/info "entering route" route-params app)
+     (let [ident [:server/id (uuid (:server/id route-params))]]
+       (log/info ident)
+       (dr/route-deferred ident
+                          (fn []
+                            (df/load! app
+                                      ident
+                                      ServerPage
+                                      {:post-mutation `dr/target-ready
+                                       :post-mutation-params
+                                       {:target ident}})))))}
+  (div
+   (h3 "full server page")
+   (div :.ui.container.segment
+        {:onClick #(js/console.log "ars")}
+        (pr-str props))))
+
+(def ui-server-page (comp/factory ServerPage))
+
+(defsc Server [this {:keys [:server/id :server/last-pinged :server/game-addr] :as props}]
+  {:query [:server/id :server/last-pinged :server/game-addr]
    :ident :server/id
    :initial-state {}}
   (div
    (div :.ui.container.segment
-        {:onClick #(js/console.log "ars")}
+        {:onClick #(dr/change-route this ["server" id])}
         (pr-str props))))
 
 (def ui-server (comp/factory Server {:keyfn :server/id}))

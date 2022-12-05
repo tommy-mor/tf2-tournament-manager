@@ -162,6 +162,7 @@
   {:router-targets [Main Signup
                     note/NotePage
                     mge/ServersPage
+                    mge/ServerPage
                     SignupSuccess
                     Settings]})
 
@@ -199,6 +200,9 @@
                              :onClick (fn [] (dr/change-route this ["notes"]))} "Notes")
               (dom/a :.item {:classes [(when (= :servers current-tab) "active")]
                              :onClick (fn [] (dr/change-route this ["servers"]))} "Servers")
+              (when (= :server current-tab)
+                (dom/a :.item {:classes ["active"]} "Server"))
+              
               (div :.right.menu
                    (ui-login login)))
          (div :.ui.grid
