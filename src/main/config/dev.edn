@@ -1,1 +1,2 @@
-{:taoensso.timbre/logging-config {:min-level :debug}}
+{:taoensso.timbre/logging-config {:min-level :debug
+                                  :path "log.log"}}

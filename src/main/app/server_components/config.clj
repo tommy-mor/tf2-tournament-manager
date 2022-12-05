@@ -2,13 +2,16 @@
   (:require
     [mount.core :refer [defstate args]]
     [com.fulcrologic.fulcro.server.config :refer [load-config!]]
-    [taoensso.timbre :as log]))
+    [taoensso.timbre :as log]
+    [taoensso.timbre.appenders.core :as appenders]))
 
 
 (defn configure-logging! [config]
   (let [{:keys [taoensso.timbre/logging-config]} config]
     (log/info "Configuring Timbre with " logging-config)
-    (log/merge-config! logging-config)))
+    (log/merge-config!
+     {:min-level :info
+      :appenders {:spit (appenders/spit-appender {:fname (:path logging-config)})}})))
 
 
 (defstate config

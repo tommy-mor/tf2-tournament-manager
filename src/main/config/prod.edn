@@ -3,7 +3,8 @@
 
  :org.httpkit.server/config      {:port 8081}
 
- :taoensso.timbre/logging-config {:min-level :info}
+ :taoensso.timbre/logging-config {:min-level :info
+                                  :path "/home/container/log.log"}
  ;; You probably want these set to true in real production:
  :ring.middleware/defaults-config
                                  {:proxy    false
