@@ -7,7 +7,9 @@
    [taoensso.timbre :as log]
    [clojure.spec.alpha :as s]
    [xtdb.api :as xt]
-   [clojure.set :refer [rename-keys]]))
+   [clojure.set :refer [rename-keys]]
+   [org.httpkit.client :as client]
+   [cheshire.core :as json]))
 
 
 (def connected-servers (atom {}))
@@ -73,8 +75,15 @@
      :server/api-addr api
      :server/last-pinged (@connected-servers id)}))
 
+
+(defn request [m]
+  (json/parse-string (slurp (:body @(client/request m)))
+                     keyword))
 (defresolver server-players [{:keys [db]} {:keys [server/api-addr]}]
   {::pc/input #{:server/api-addr}
-   ::pc/output [:server/players]})
+   ::pc/output [:server/players]}
 
-(def resolvers [ping register servers-registered single-server])
+  {:server/players (request {:method :get
+                             :url (str api-addr "/api/players") })})
+
+(def resolvers [ping register servers-registered single-server server-players])

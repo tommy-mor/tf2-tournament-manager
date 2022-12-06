@@ -22,11 +22,13 @@
 (defsc ServerPage [this {:keys [:server/id
                                 :server/last-pinged
                                 :server/game-addr
-                                :server/api-addr] :as props}]
+                                :server/api-addr
+                                :server/players] :as props}]
   {:query [:server/id
            :server/last-pinged
            :server/game-addr
-           :server/api-addr]
+           :server/api-addr
+           :server/players]
    :ident :server/id
    :route-segment ["server" :server/id]
    :initial-state {}
