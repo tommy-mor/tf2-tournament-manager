@@ -79,6 +79,7 @@
 (defn request [m]
   (json/parse-string (slurp (:body @(client/request m)))
                      keyword))
+
 (defresolver server-players [{:keys [db]} {:keys [server/api-addr]}]
   {::pc/input #{:server/api-addr}
    ::pc/output [:server/players]}

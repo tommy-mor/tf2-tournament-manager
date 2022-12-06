@@ -19,6 +19,15 @@
    [com.fulcrologic.fulcro.data-fetch :as df]
    [taoensso.timbre :as log]))
 
+(defsc Player [this {:keys [:player/name
+                            :player/steamid]}]
+  {:query [:player/name :player/steamid]
+   :ident :player/steamid}
+  (div :.ui.container.segment
+       (pr-str [name steamid])))
+
+(def ui-player (comp/factory Player {:keyfn :player/steamid}))
+
 (defsc ServerPage [this {:keys [:server/id
                                 :server/last-pinged
                                 :server/game-addr
@@ -28,7 +37,7 @@
            :server/last-pinged
            :server/game-addr
            :server/api-addr
-           :server/players]
+           {:server/players (comp/get-query Player)}]
    :ident :server/id
    :route-segment ["server" :server/id]
    :initial-state {}
@@ -49,7 +58,10 @@
    (h3 "full server page")
    (div :.ui.container.segment
         {:onClick #(js/console.log "ars")}
-        (pr-str props))))
+        (pr-str props))
+   (div :.ui.container.segment
+        (doall (for [player players]
+                 (ui-player player))))))
 
 (def ui-server-page (comp/factory ServerPage))
 
