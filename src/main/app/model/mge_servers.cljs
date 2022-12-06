@@ -24,7 +24,7 @@
   {:query [:player/name :player/steamid]
    :ident :player/steamid}
   (div :.ui.container.segment
-       (pr-str [name steamid])))
+       name))
 
 (def ui-player (comp/factory Player {:keyfn :player/steamid}))
 
@@ -56,6 +56,11 @@
                                        {:target ident}})))))}
   (div
    (h3 "full server page")
+   (button :.ui.secondary.button
+           {:onClick #(df/load! this
+                                [:server/id id]
+                                ServerPage)}
+           [(i :.refresh.icon) "refresh"])
    (div :.ui.container.segment
         {:onClick #(js/console.log "ars")}
         (pr-str props))

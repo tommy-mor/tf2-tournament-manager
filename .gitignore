@@ -64,3 +64,6 @@ resources/public/workspaces/*
 .lsp/.cache/
 .clj-kondo/.cache/
 data/
+
+challonge.edn
+token.edn

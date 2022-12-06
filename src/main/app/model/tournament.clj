@@ -2,19 +2,16 @@
   (:require [xtdb.api :as xt]
             [hato.client :as hc]
             [clojure.java.io :as io]
-            [cheshire.core :refer [generate-string]]
-            [clojure.java.shell :refer [sh]]))
+            [cheshire.core :refer [generate-string parse-string]]
+            [clojure.java.shell :refer [sh]]
+            [org.httpkit.client :as client]
+            [org.httpkit.sni-client :as sni-client]
+            [com.wsscode.pathom.connect :as pc :refer [defresolver defmutation]]))
 
-(def scopes ["me"
-             "tournaments:read"
-             "tournaments:write"
-             "matches:read"
-             "matches:write"
-             "participants:read"
-             "participants:write"
-             "attachments:read"
-             "attachments:write"
-             "communities:manage"])
+(alter-var-root #'org.httpkit.client/*default-client* (fn [_] sni-client/default-client))
+
+
+
 
 (defn make-options [tokens] {:headers {"Authorization-Type" "v2"}
                              :oauth-token (:access_token tokens)
@@ -22,17 +19,12 @@
                              :accept :json
                              :as :json})
 
+(defn refresh-tokens []
+  (when (not (.exists (io/file "token.edn")))
+    (throw (Exception. "can only refresh token, not create new one")))
 
-(comment
-  (def client_id (:client_id (clojure.edn/read-string (slurp "secrets.edn"))))
-  (def client_secret (:client_secret (clojure.edn/read-string (slurp "secrets.edn"))))
-  (def redirect_uri "https://oauth.pstmn.io/v1/callback")
-
-  (defn refresh-tokens []
-    (when (not (.exists (io/file "token.edn")))
-      (throw (Exception. "can only refresh token, not create new one")))
+  (let [tokens (clojure.edn/read-string (slurp "token.edn"))]
     
-    (def tokens (clojure.edn/read-string (slurp "token.edn")))
     (try
       (hc/get "https://api.challonge.com/v2/me.json" (make-options tokens))
       tokens
@@ -46,19 +38,43 @@
                                           :redirect_uri redirect_uri}
                             :as :json})]
           (spit "token.edn" (:body req))
-          (clojure.edn/read-string (slurp "token.edn"))))))
+          (clojure.edn/read-string (slurp "token.edn")))))))
 
+(def tokens (delay (refresh-tokens)))
+
+(comment (hc/get "https://api.challonge.com/v2/tournaments.json"
+                 (make-options @tokens)))
+
+
+
+
+(comment
+  (def client_id (:client_id (clojure.edn/read-string (slurp "challonge.edn"))))
+  (def client_secret (:client_secret (clojure.edn/read-string (slurp "challonge.edn"))))
+  (def redirect_uri "https://oauth.pstmn.io/v1/callback")
+  
+  (def scopes ["me"
+               "tournaments:read"
+               "tournaments:write"
+               "matches:read"
+               "matches:write"
+               "participants:read"
+               "participants:write"
+               "attachments:read"
+               "attachments:write"
+               "communities:manage"])
+
+  (refresh-tokens)
   (comment
     (defn comunity-oauth-url []
       "to be pasted into browser once to give my application access to the tf2 community"
       (str "https://api.challonge.com/oauth/authorize?scope=" (clojure.string/join " " scopes)
            "&client_id=" client_id
            "&redirect_uri=" redirect_uri
-           "&response_type=code"
-           "&community_id=tf2"))
-    (= "https://api.challonge.com/oauth/authorize?scope=me tournaments:read tournaments:write matches:read matches:write participants:read participants:write attachments:read attachments:write communities:manage&client_id=3bd276c270e74d5e90d7482425ee86d68a99898b315379a07432787fca67cfc1&redirect_uri=https://oauth.pstmn.io/v1/callback&response_type=code&community_id=tf2")
-
-    (def code "392fa26ecea83dd91f28fd54ff2414bc23e64af33d11f12c6e8a0b440cbd4a68")
+           "&response_type=code"))
+    
+    "https://api.challonge.com/oauth/authorize?scope=me tournaments:read tournaments:write matches:read matches:write participants:read participants:write attachments:read attachments:write communities:manage&client_id=3bd276c270e74d5e90d7482425ee86d68a99898b315379a07432787fca67cfc1&redirect_uri=https://oauth.pstmn.io/v1/callback&response_type=code"
+    (def code "6cd00e4fd1fcd36e543c6b7df49ddf6911fab63295031009f0155c78aad99c79")
     (defn get-oauth-token []
       (-> (hc/post "https://api.challonge.com/oauth/token"
                    {:form-params {:grant_type "client_credentials"
@@ -68,13 +84,15 @@
           :body))
     
     (defn get-oauth-token-2 [code]
-      (-> (hc/post "https://api.challonge.com/oauth/token"
-                   {:form-params {:code code
-                                  :client_id client_id
-                                  :grant_type "authorization_code"
-                                  :redirect_uri redirect_uri}
-                    :as :json})
-          :body))
+      (parse-string (:body @(client/request
+                             {:method :post
+                              :url "https://api.challonge.com/oauth/token"
+                              :form-params {:code code
+                                            :client_id client_id
+                                            :grant_type "authorization_code"
+                                            :redirect_uri redirect_uri}}))))
+
+    (spit "token.edn" (pr-str l))
     
     (def swage (get-oauth-token-2 code))
     (def tokens swage)
