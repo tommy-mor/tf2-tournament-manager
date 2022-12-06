@@ -1,6 +1,7 @@
 (ns app.model.mge-servers
   (:require
    [app.model.session :as session]
+   [app.model.tournament :as tournament]
    [clojure.string :as str]
    [com.fulcrologic.fulcro.dom :as dom :refer [div ul li p h3 button b textarea pre i]]
    [com.fulcrologic.fulcro.dom.html-entities :as ent]
@@ -32,12 +33,16 @@
                                 :server/last-pinged
                                 :server/game-addr
                                 :server/api-addr
-                                :server/players] :as props}]
+                                :server/players
+                                :server/active-tournament
+                                :server/tournaments] :as props}]
   {:query [:server/id
            :server/last-pinged
            :server/game-addr
            :server/api-addr
-           {:server/players (comp/get-query Player)}]
+           {:server/players (comp/get-query Player)}
+           {:server/tournaments (comp/get-query tournament/Tournament)}
+           :server/active-tournament]
    :ident :server/id
    :route-segment ["server" :server/id]
    :initial-state {}
@@ -66,7 +71,16 @@
         (pr-str props))
    (div :.ui.container.segment
         (doall (for [player players]
-                 (ui-player player))))))
+                 (ui-player player))))
+   (when (not active-tournament)
+     (button :.ui.button
+             {:onClick (fn start []
+                         (comp/transact! this
+                                         [(tournament/start-tournament {:server/id id})]))}
+             [(i :.icon.play) "start tournament"]))
+   (doall
+    (for [tournament tournaments]
+      (tournament/ui-tournament {:tournament/server-id id})))))
 
 (def ui-server-page (comp/factory ServerPage))
 

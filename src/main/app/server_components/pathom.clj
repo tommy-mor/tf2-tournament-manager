@@ -9,6 +9,7 @@
     [app.model.account :as acct]
     [app.model.session :as session]
     [app.model.mge-servers :as mge]
+    [app.model.tournament :as tournament]
     [app.model.note :as note]
     [app.server-components.config :refer [config]]
     [app.model.mock-database :as db]
@@ -27,6 +28,7 @@
                     session/resolvers
                     note/resolvers
                     mge/resolvers
+                    tournament/resolvers
                     index-explorer ])
 
 (defn preprocess-parser-plugin

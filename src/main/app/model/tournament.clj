@@ -10,6 +10,29 @@
 
 (alter-var-root #'org.httpkit.client/*default-client* (fn [_] sni-client/default-client))
 
+(def client_id (:client_id (clojure.edn/read-string (slurp "challonge.edn"))))
+(def client_secret (:client_secret (clojure.edn/read-string (slurp "challonge.edn"))))
+(def redirect_uri "https://oauth.pstmn.io/v1/callback")
+
+(defresolver serverid->tournament [{:keys [db]} {:keys [server/id]}]
+  {::pc/input #{:server/id}
+   ::pc/output [{:server/tournament [:tournament/id :tournament/name]}]}
+  {:server/tournament {:tournament/id "123"}})
+
+;; TODO replace this
+(def active-tournaments (atom {}))
+
+(defresolver active-tourney [{:keys [db]} {:keys [server/id]}]
+  {::pc/input #{:server/id}
+   ::pc/output [:server/active-tournament]}
+  (def t id)
+  {:server/active-tournament (@active-tournaments id)})
+
+(defmutation start-tournament [{:keys [db]} {:keys [server/id]}]
+  {::pc/output []}
+  (swap! active-tournaments assoc id "123")
+  {:server/id id})
+
 
 
 
@@ -49,10 +72,6 @@
 
 
 (comment
-  (def client_id (:client_id (clojure.edn/read-string (slurp "challonge.edn"))))
-  (def client_secret (:client_secret (clojure.edn/read-string (slurp "challonge.edn"))))
-  (def redirect_uri "https://oauth.pstmn.io/v1/callback")
-  
   (def scopes ["me"
                "tournaments:read"
                "tournaments:write"
@@ -98,6 +117,4 @@
     (def tokens swage)
     (spit "token.edn" (pr-str tokens))))
 
-
-
-
+(def resolvers [serverid->tournament start-tournament active-tourney])
