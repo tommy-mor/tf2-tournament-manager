@@ -23,7 +23,7 @@
   {::pco/output []}
                                         ; TODO add existence check for this... 
   (let [id (random-uuid)]
-    (when-not (empty? (xt/q db '{:find [(pull e [*])]
+    (when-not (empty? (xt/q @db '{:find [(pull e [*])]
                                  :where [[e :type :server/registration]
                                          [e :server/game-addr remote]]
                                  :in [remote]}
@@ -35,14 +35,14 @@
                                         :type :server/registration
                                         :server/game-addr game-addr
                                         :server/api-addr api-addr}]])
+      (reset! db (xt/db db/conn))
       {:success true :server/id id})))
 
 (defmutation ping [{:keys [db ring/request]} {:keys [server/id] :as args}]
   {::pco/output []}
   (def args args)
   (def id (:server/id args))
-  (def db (xt/db db/conn))
-  (let [{:keys [server/api-addr]} (xt/pull db '[*] id)]
+  (let [{:keys [server/api-addr]} (xt/pull @db '[*] id)]
     (def api-addr api-addr)
     (def request request)
     (when (or (nil? api-addr)
@@ -56,14 +56,14 @@
 (defresolver servers-registered [{:keys [db]} _]
   {::pco/output [{:servers/registered [:server/id]}]}
   {:servers/registered
-   (vec (for [[id] (xt/q db '{:find [e]
+   (vec (for [[id] (xt/q @db '{:find [e]
                                      :where [[e :type :server/registration]]})]
           {:server/id id}))})
 
 (defresolver single-server [{:keys [db]} {:keys [server/id]}]
   {::pco/input [:server/id]
    ::pco/output [:server/id :server/game-addr :server/api-addr :server/last-pinged]}
-  (let [[id game api] (first (xt/q db '{:find [e game api]
+  (let [[id game api] (first (xt/q @db '{:find [e game api]
                                       :where [[e :xt/id id]
                                               [e :type :server/registration]
                                               [e :server/game-addr game]
@@ -77,8 +77,11 @@
 
 
 (defn request [m]
-  (json/parse-string (slurp (:body @(client/request m)))
-                     keyword))
+  (try
+    (json/parse-string (slurp (:body @(client/request m)))
+                      keyword)
+    (catch Exception e
+      nil)))
 
 (defresolver server-players [{:keys [db]} {:keys [server/api-addr]}]
   {::pco/input [:server/api-addr]

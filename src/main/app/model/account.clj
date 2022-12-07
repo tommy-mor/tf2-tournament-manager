@@ -21,7 +21,7 @@
    ::pco/output [{:all-accounts [:account/id]}]}
   {:all-accounts (mapv
                   (fn [id] {:account/id id})
-                  (all-account-ids db))})
+                  (all-account-ids @db))})
 
 (>defn get-account [db id subquery]
        [any? uuid? vector? => (? map?)]
@@ -30,17 +30,17 @@
 (defresolver account-resolver [{:keys [db] :as env} {:account/keys [id]}]
   {::pco/input  [:account/id]
    ::pco/output [:account/email]}
-  (get-account db id [:account/email]))
+  (get-account @db id [:account/email]))
 
 (defresolver logged-in-user-id [{:keys [db]} {::session/keys [current-session]}]
   {::pco/output [:session/account-id]}
   (if (:session/valid? current-session)
     {:session/account-id
-     (ffirst (xt/q (xt/db db/conn) '{:find [id]
-                                     :where [[e :type :account]
-                                             [e :account/email email]
-                                             [e :xt/id id]]
-                                     :in [email]}
+     (ffirst (xt/q @db '{:find [id]
+                         :where [[e :type :account]
+                                 [e :account/email email]
+                                 [e :xt/id id]]
+                         :in [email]}
                    (:account/name current-session)))}))
 
 (def resolvers [all-users-resolver account-resolver logged-in-user-id])

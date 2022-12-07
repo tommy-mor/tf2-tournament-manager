@@ -28,7 +28,9 @@
   {::pco/output []}
   (let [tid (challonge/make-tournament)]
     (log/info (challonge/ingest-tournament {:server/id id :tournament/id tid})))
-  
+
+  (reset! db (xt/db db/conn))
+
   {:server/id id})
 
 (defmutation delete-tournament [{:keys [db]} {sid :server/id
@@ -37,14 +39,18 @@
 
   (def tid tid)
   (def sid sid)
-  (let [del #(xt/submit-tx db/conn
-                           [[::xt/delete
-                             (ffirst (xt/q (xt/db db/conn)
-                                           '{:find [e]
-                                             :where [[e :server/id sid]
-                                                     [e :tournament/id tid]
-                                                     [e :type "tournament"]]
-                                             :in [sid tid]} sid tid))]])]
+  (let [del #(do
+               (xt/await-tx db/conn
+                            (xt/submit-tx db/conn
+
+                                          [[::xt/delete
+                                            (ffirst (xt/q @db
+                                                          '{:find [e]
+                                                            :where [[e :server/id sid]
+                                                                    [e :tournament/id tid]
+                                                                    [e :type "tournament"]]
+                                                            :in [sid tid]} sid tid))]]))
+               (reset! db (xt/db db/conn)))]
     (try (challonge/delete-tournament! tid)
          (catch clojure.lang.ExceptionInfo e
            (def e e)
@@ -53,17 +59,16 @@
            "epic"))
                                         ; TODO somehow authorize this request
     (del)
-    
     {:server/id sid}))
 
 (defresolver serverid->tournament [{:keys [db]} {:keys [server/id]}]
   {::pco/input [:server/id]
    ::pco/output [{:server/tournaments [:tournament/id]}]}
-  {:server/tournaments  (vec (map first (xt/q (xt/db db/conn) '{:find [{:tournament/id e}]
-                                                                :where [[e :type "tournament"]
-                                                                        [e :tournament/id id]
-                                                                        [e :server/id sid]]
-                                                                :in [sid]}
+  {:server/tournaments  (vec (map first (xt/q @db '{:find [{:tournament/id e}]
+                                                    :where [[e :type "tournament"]
+                                                            [e :tournament/id id]
+                                                            [e :server/id sid]]
+                                                    :in [sid]}
                                               id)))})
 
 (def tournament-attrs [:relationships.stations.links.meta.count :attributes.url :attributes.grandFinalsModifier :attributes.notifyUponMatchesOpen :relationships.organizer.data.type :attributes.hideSeeds :attributes.timestamps.startedAt :attributes.signUpUrl :attributes.timestamps.updatedAt :relationships.participants.links.related :attributes.fullChallongeUrl :attributes.thirdPlaceMatch :relationships.matches.data :relationships.matches.links.meta.count :attributes.splitParticipants :tournament/id :relationships.game.data :type :attributes.acceptAttachments :attributes.timestamps.startsAt :relationships.stations.data :relationships.matches.links.related :relationships.stations.links.related :attributes.private :attributes.timestamps.createdAt :attributes.openSignup :attributes.gameName :server/id :attributes.name :attributes.autoAssignStations :attributes.description :links.self :attributes.onlyStartMatchesWithStations :relationships.organizer.data.id :relationships.community.data :attributes.state :attributes.notifyUponTournamentEnds :relationships.participants.links.meta.count :attributes.oauthApplicationId :attributes.liveImageUrl :attributes.tournamentType :attributes.signupCap :relationships.participants.data :relationships.localizedContents.data :attributes.timestamps.completedAt :attributes.sequentialPairings :attributes.checkInDuration])
@@ -71,8 +76,7 @@
 (defresolver tournament [{:keys [db]} {:keys [tournament/id]}]
   {::pco/input [:tournament/id]
    ::pco/output tournament-attrs}
-  (log/info db)
-  (def t (xt/pull db '[*] id))
+  (def t (xt/pull @db '[*] id))
   t)
 
 (def resolvers [start-tournament delete-tournament

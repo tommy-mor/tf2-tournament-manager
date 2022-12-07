@@ -45,36 +45,18 @@
                     tournament/resolvers
                     index-explorer ])
 
-(def update-db-after-mutation-plugin
-  {::pcr/wrap-mutate
-   (fn sample-mutate-wrapper [mutate]
-     (fn [env ast]
-       (log/info "running mutation in " env " on " ast)
-       (mutate env ast)))})
-
-(defn preprocess-parser-plugin
-  "Helper to create a plugin that can view/modify the env/tx of a top-level request.
-
-  f - (fn [{:keys [env tx]}] {:env new-env :tx new-tx})
-
-  If the function returns no env or tx, then the parser will not be called (aborts the parse)"
-  [id f]
-  {::p.plugin/id id
+(def log-resolve-plugin
+  {::p.plugin/id `log-resolve-plugin
    ::pcr/wrap-resolve
-   (fn transform-parser-out-plugin-external [parser]
-     (fn transform-parser-out-plugin-internal [env tx]
-       (let [{:keys [env tx] :as req} (f {:env env :tx tx})]
-         (if (and (map? env) (seq tx))
-           (parser env tx)
-           {}))))})
-
-(defn log-requests [{:keys [env tx] :as req}]
-  (log/debug "Pathom transaction:" (pr-str tx))
-  req)
+   (fn resolve-wrapper [resolve]
+     (fn [env input]
+       (log/debug "pathom transaction" input)
+       (resolve env input)))})
 
 (defn build-parser [db-connection]
-  (let [plugins [(pbip/env-wrap-plugin #(assoc %
-                                               :db (xt/db db-connection)
+  (let [plugins [log-resolve-plugin
+                 (pbip/env-wrap-plugin #(assoc %
+                                               :db (atom (xt/db db-connection))
                                                :config config))]
         env (->
              {::p.a.eql/parallel? true
@@ -85,7 +67,7 @@
         trace? (not (nil? (System/getProperty "trace")))]
     (fn parser [{:keys [ring/request] :as env'} tx]
       @(p.a.eql/process (merge env env') (cond-> tx trace?
-                                      (conj :com.wsscode.pathom3/trace))))))
+                                                 (conj :com.wsscode.pathom3/trace))))))
 
 (defstate parser
   :start (build-parser db/conn))

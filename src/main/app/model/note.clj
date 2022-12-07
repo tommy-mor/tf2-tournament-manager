@@ -11,9 +11,7 @@
 
 
 (defresolver all-notes-resolver [{:keys [db] :as env} {:keys [session/account-id]  :as input}]
-  {;;GIVEN nothing (e.g. this is usable as a root query)
-   ;; I can output all accounts. NOTE: only ID is needed...other resolvers resolve the rest
-   ::pco/input [:session/account-id]
+  {::pco/input [:session/account-id]
    ::pco/output [:notes/all]}
   (def env env)
   (def i input)
@@ -25,9 +23,8 @@
                {:note/id 4 :note/text "i am the second note"}
                {:note/id 5 :note/text "i am the third note"}]})
 
-(defmutation edit-note [{:keys [db connection] :as env} {:keys [session/account-id] :as args}]
+(defmutation edit-note [_ {:keys [session/account-id] :as args}]
   {::pco/output []}
-  (def a args)
   (let [now (java.util.Date.)
         user (-> env :ring/request :session :account/name)
         doc (cond-> args
@@ -41,7 +38,7 @@
               (assoc :type :note
                      :note/modified now
                      :owner (-> env :ring/request :session :account/name)))]
-    (xt/submit-tx connection [[::xt/put doc]])
+    (xt/submit-tx db/conn [[::xt/put doc]])
     {:tempids {:new (:xt/id doc)}}))
 
 (def resolvers [all-notes-resolver edit-note])

@@ -11,10 +11,7 @@
 (defonce account-database (atom {}))
 
 (defresolver current-session-resolver [env _]
-  {::pco/input []
-   ::pco/output [{::current-session [:session/valid? :account/name]}]}
-  (println "epic win")
-  (def env env)
+  {::pco/output [{::current-session [:session/valid? :account/name]}]}
   (let [{:keys [account/name session/valid?]} (get-in env [:ring/request :session])]
     (if valid?
       (do
@@ -43,7 +40,7 @@
   {::pco/output [:session/valid? :account/name]}
   (log/info "Authenticating" username)
   (let [{expected-email    :account/email
-         expected-password :account/password} (get-account db username)]
+         expected-password :account/password} (get-account @db username)]
     (if (and (= username expected-email) (= password expected-password))
       (response-updating-session env
                                  {:session/valid? true
@@ -62,9 +59,10 @@
                                     :account/email email
                                     :account/password password}]]))
 
-(defmutation signup! [env {:keys [email password] :as input}]
+(defmutation signup! [{:keys [db]} {:keys [email password] :as input}]
   {::pco/output [:signup/result]}
   (create-user! {:email email :password password})
+  (reset! db (xt/db db/conn))
   {:signup/result "OK"})
 
 
