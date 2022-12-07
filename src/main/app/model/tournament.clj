@@ -77,4 +77,4 @@
 
 (def resolvers [start-tournament delete-tournament
                 
-                active-tourney tournament serverid->tournament tournament])
+                active-tourney serverid->tournament tournament])

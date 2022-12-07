@@ -10,8 +10,11 @@
 
 (defonce account-database (atom {}))
 
-(defresolver current-session-resolver [env input]
-  {::pco/output [{::current-session [:session/valid? :account/name]}]}
+(defresolver current-session-resolver [env _]
+  {::pco/input []
+   ::pco/output [{::current-session [:session/valid? :account/name]}]}
+  (println "epic win")
+  (def env env)
   (let [{:keys [account/name session/valid?]} (get-in env [:ring/request :session])]
     (if valid?
       (do

@@ -4,6 +4,11 @@
     [taoensso.timbre :as log]
     [com.wsscode.pathom3.connect.operation :as pco]
     [com.wsscode.pathom3.connect.runner :as pcr]
+    [com.wsscode.pathom3.connect.indexes :as pci]
+    [com.wsscode.pathom3.connect.built-in.plugins :as pbip]
+    [com.wsscode.pathom3.interface.async.eql :as p.a.eql]
+    [com.wsscode.pathom3.plugin :as p.plugin]
+    
     [clojure.core.async :as async]
     [app.model.account :as acct]
     [app.model.session :as session]
@@ -13,15 +18,25 @@
     [app.server-components.config :refer [config]]
     [app.model.mock-database :as db]
 
-    [xtdb.api :as xt]))
+    [xtdb.api :as xt]
+    [clojure.walk :refer [postwalk]]))
 
 (pco/defresolver index-explorer [env _]
-  {::pco/input  [:com.wsscode3.pathom.viz.index-explorer/id]
-   ::pco/output [:com.wsscode3.pathom.viz.index-explorer/index]}
-  {:com.wsscode.pathom3.viz.index-explorer/index
+  {::pco/input  [:com.wsscode.pathom.viz.index-explorer/id]
+   ::pco/output [:com.wsscode.pathom.viz.index-explorer/index]}
+  {:com.wsscode.pathom.viz.index-explorer/index
    (-> (get env ::pco/indexes)
-     (update ::pco/index-resolvers #(into {} (map (fn [[k v]] [k (dissoc v ::pco/resolve)])) %))
-     (update ::pco/index-mutations #(into {} (map (fn [[k v]] [k (dissoc v ::pco/mutate)])) %)))})
+       (update ::pco/index-resolvers #(into {} (map (fn [[k v]] [k (dissoc v ::pco/resolve)])) %))
+       (update ::pco/index-mutations #(into {} (map (fn [[k v]] [k (dissoc v ::pco/mutate)])) %)))}
+  {:com.wsscode.pathom.viz.index-explorer/index
+   (-> env
+       (select-keys [
+                     ::pci/index-attributes
+                     ::pci/index-resolvers
+                     ::pci/index-mutations
+                     ::pci/index-io
+                     ::pci/index-oir]))})
+
 
 (def all-resolvers [acct/resolvers
                     session/resolvers
@@ -43,8 +58,9 @@
   f - (fn [{:keys [env tx]}] {:env new-env :tx new-tx})
 
   If the function returns no env or tx, then the parser will not be called (aborts the parse)"
-  [f]
-  {::pcr/wrap-resolve
+  [id f]
+  {::p.plugin/id id
+   ::pcr/wrap-resolve
    (fn transform-parser-out-plugin-external [parser]
      (fn transform-parser-out-plugin-internal [env tx]
        (let [{:keys [env tx] :as req} (f {:env env :tx tx})]
@@ -57,34 +73,19 @@
   req)
 
 (defn build-parser [db-connection]
-  (let [real-parser (p/parallel-parser
-                     {::p/mutate  pc/mutate-async
-                      ::p/env     {::p/reader               [p/map-reader pc/parallel-reader
-                                                             pc/open-ident-reader p/env-placeholder-reader]
-                                   ::p/placeholder-prefixes #{">"}
-                                   ::pc/mutation-join-globals [:tempids]}
-                      ::p/plugins [(pc/connect-plugin {::pc/register all-resolvers})
-                                   (p/env-wrap-plugin (fn [env]
-                                                        ;; Here is where you can dynamically add things to the resolver/mutation
-                                                        ;; environment, like the server config, database connections, etc.
-                                                        (assoc env
-                                                               :db (xt/db db-connection) ; real datomic would use (d/db db-connection)
-                                                               :connection db-connection
-                                                               :config config)))
-                                   (preprocess-parser-plugin log-requests)
-                                   p/error-handler-plugin
-                                   (p/post-process-parser-plugin p/elide-not-found)
-                                   p/trace-plugin]})
-        ;; NOTE: Add -Dtrace to the server JVM to enable Fulcro Inspect query performance traces to the network tab.
-        ;; Understand that this makes the network responses much larger and should not be used in production.
-        trace?      (not (nil? (System/getProperty "trace")))]
-    (fn wrapped-parser [env tx]
-      (async/<!! (real-parser env (if trace?
-                                    (conj tx :com.wsscode.pathom/trace)
-                                    tx))))))
-
-(let [env (pci/register all-resolvers)]
-  {{{{}}}})
+  (let [plugins [(pbip/env-wrap-plugin #(assoc %
+                                               :db (xt/db db-connection)
+                                               :config config))]
+        env (->
+             {::p.a.eql/parallel? true
+              :com.wsscode.pathom3.error/lenient-mode? true}
+             
+             (p.plugin/register plugins)
+             (pci/register all-resolvers))
+        trace? (not (nil? (System/getProperty "trace")))]
+    (fn parser [{:keys [ring/request] :as env'} tx]
+      @(p.a.eql/process (merge env env') (cond-> tx trace?
+                                      (conj :com.wsscode.pathom3/trace))))))
 
 (defstate parser
   :start (build-parser db/conn))

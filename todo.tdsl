@@ -1,3 +1,7 @@
+refactor
+  fix logging
+  fix the indexer thing.. (hopefully get graph)
+  
 server/tournaments needs to be a list of tournaments.
 and maybe server/active-tournament? for if there is one active (to show button).
 
