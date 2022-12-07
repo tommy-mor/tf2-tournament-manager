@@ -80,7 +80,7 @@
              [(i :.icon.play) "start tournament"]))
    (doall
     (for [tournament tournaments]
-      (tournament/ui-tournament {:tournament/server-id id})))))
+      (tournament/ui-tournament tournament)))))
 
 (def ui-server-page (comp/factory ServerPage))
 

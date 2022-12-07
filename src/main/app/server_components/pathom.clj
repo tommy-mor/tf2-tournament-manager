@@ -3,6 +3,7 @@
     [mount.core :refer [defstate]]
     [taoensso.timbre :as log]
     [com.wsscode.pathom.connect :as pc]
+    [com.wsscode.pathom.connect.runner :as pcr]
     [com.wsscode.pathom.core :as p]
     [com.wsscode.common.async-clj :refer [let-chan]]
     [clojure.core.async :as async]
@@ -30,6 +31,13 @@
                     mge/resolvers
                     tournament/resolvers
                     index-explorer ])
+
+(def update-db-after-mutation-plugin
+  {::pcr/wrap-mutate
+   (fn sample-mutate-wrapper [mutate]
+     (fn [env ast]
+       (log/info "running mutation in " env " on " ast)
+       (mutate env ast)))})
 
 (defn preprocess-parser-plugin
   "Helper to create a plugin that can view/modify the env/tx of a top-level request.

@@ -2,7 +2,7 @@
   (:require
    [app.model.session :as session]
    [clojure.string :as str]
-   [com.fulcrologic.fulcro.dom :as dom :refer [div ul li p h3 button b textarea pre i]]
+   [com.fulcrologic.fulcro.dom :as dom :refer [div ul li p h3 button b textarea pre i a br]]
    [com.fulcrologic.fulcro.dom.html-entities :as ent]
    [com.fulcrologic.fulcro.dom.events :as evt]
    [com.fulcrologic.fulcro.application :as app]
@@ -22,8 +22,15 @@
 (defmutation start-tournament [{:keys [server/id]}]
   (remote [env] (m/returning env 'app.model.mge-servers/ServerPage)))
 
-(defsc Tournament [this {:keys [:tournament/id :tournament/name :tournament/server-id] :as props}]
-  {:query [:tournament/id :tournament/name :tournament/server-id]
+(defmutation delete-tournament [{:keys [tournament/id]}]
+  (remote [env] (m/returning env 'app.model.mge-servers/ServerPage)))
+
+(defsc Tournament [this {:keys [:tournament/id :server/id] :as props}]
+  {:query [:tournament/id
+           :server/id
+           :attributes.name
+           :attributes.tournamentType
+           :attributes.fullChallongeUrl]
    :ident :tournament/id}
   
   
@@ -32,8 +39,19 @@
   
   
   
+  (def ps props)
   (div :.ui.container.segment
-       (h3 "I am a tournament")
-       (pr-str props)))
+       (h3 (:attributes.name props))
+       (p (:attributes.tournamentType props))
+       (a {:href (:attributes.fullChallongeUrl props)}
+          "link")
+       (br)
+       (pr-str props)
+       (button :.ui.button
+               {:onClick #(comp/transact!
+                           this
+                           [(delete-tournament {:tournament/id (:tournament/id props)
+                                                :server/id (:server/id props)})])}
+               [(i :.icon.delete) "delete"])))
 
-(def ui-tournament (comp/factory Tournament {:keyfn :player/steamid}))
+(def ui-tournament (comp/factory Tournament {:keyfn :tournament/id}))

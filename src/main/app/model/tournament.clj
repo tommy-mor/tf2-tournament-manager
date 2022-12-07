@@ -6,18 +6,12 @@
             [clojure.java.shell :refer [sh]]
             [org.httpkit.client :as client]
             [org.httpkit.sni-client :as sni-client]
-            [com.wsscode.pathom.connect :as pc :refer [defresolver defmutation]]))
+            [com.wsscode.pathom.connect :as pc :refer [defresolver defmutation]]
+            [app.model.mock-database :as db]
+            [app.model.challonge :as challonge]
+            [taoensso.timbre :as log]))
 
 (alter-var-root #'org.httpkit.client/*default-client* (fn [_] sni-client/default-client))
-
-(def client_id (:client_id (clojure.edn/read-string (slurp "challonge.edn"))))
-(def client_secret (:client_secret (clojure.edn/read-string (slurp "challonge.edn"))))
-(def redirect_uri "https://oauth.pstmn.io/v1/callback")
-
-(defresolver serverid->tournament [{:keys [db]} {:keys [server/id]}]
-  {::pc/input #{:server/id}
-   ::pc/output [{:server/tournament [:tournament/id :tournament/name]}]}
-  {:server/tournament {:tournament/id "123"}})
 
 ;; TODO replace this
 (def active-tournaments (atom {}))
@@ -26,95 +20,61 @@
   {::pc/input #{:server/id}
    ::pc/output [:server/active-tournament]}
   (def t id)
+  ;; TODO not sure if this should query the microservice, or just find it in our db
+  ;; right now, find one with :attributes.state "underway" or :attributes.state != "finished"
   {:server/active-tournament (@active-tournaments id)})
 
 (defmutation start-tournament [{:keys [db]} {:keys [server/id]}]
   {::pc/output []}
-  (swap! active-tournaments assoc id "123")
+  (let [tid (challonge/make-tournament)]
+    (log/info (challonge/ingest-tournament {:server/id id :tournament/id tid})))
+  
   {:server/id id})
 
+(defmutation delete-tournament [{:keys [db]} {sid :server/id
+                                              tid :tournament/id}]
+  {::pc/output []}
 
-
-
-(defn make-options [tokens] {:headers {"Authorization-Type" "v2"}
-                             :oauth-token (:access_token tokens)
-                             :content-type "application/vnd.api+json"
-                             :accept :json
-                             :as :json})
-
-(defn refresh-tokens []
-  (when (not (.exists (io/file "token.edn")))
-    (throw (Exception. "can only refresh token, not create new one")))
-
-  (let [tokens (clojure.edn/read-string (slurp "token.edn"))]
+  (def tid tid)
+  (def sid sid)
+  (let [del #(xt/submit-tx db/conn
+                           [[::xt/delete
+                             (ffirst (xt/q (xt/db db/conn)
+                                           '{:find [e]
+                                             :where [[e :server/id sid]
+                                                     [e :tournament/id tid]
+                                                     [e :type "tournament"]]
+                                             :in [sid tid]} sid tid))]])]
+    (try (challonge/delete-tournament! tid)
+         (catch clojure.lang.ExceptionInfo e
+           (def e e)
+           (if (-> e ex-data :status #{404})
+             (del))
+           "epic"))
+                                        ; TODO somehow authorize this request
+    (del)
     
-    (try
-      (hc/get "https://api.challonge.com/v2/me.json" (make-options tokens))
-      tokens
-      (catch clojure.lang.ExceptionInfo e
-        (def e e)
-        e
-        (let [req (hc/post "https://api.challonge.com/oauth/token"
-                           {:form-params {:grant_type "refresh_token"
-                                          :client_id client_id
-                                          :refresh_token (:refresh_token tokens)
-                                          :redirect_uri redirect_uri}
-                            :as :json})]
-          (spit "token.edn" (:body req))
-          (clojure.edn/read-string (slurp "token.edn")))))))
+    {:server/id sid}))
 
-(def tokens (delay (refresh-tokens)))
+(defresolver serverid->tournament [{:keys [db]} {:keys [server/id]}]
+  {::pc/input #{:server/id}
+   ::pc/output [{:server/tournaments [:tournament/id]}]}
+  {:server/tournaments  (vec (map first (xt/q (xt/db db/conn) '{:find [{:tournament/id e}]
+                                                                :where [[e :type "tournament"]
+                                                                        [e :tournament/id id]
+                                                                        [e :server/id sid]]
+                                                                :in [sid]}
+                                              id)))})
 
-(comment (hc/get "https://api.challonge.com/v2/tournaments.json"
-                 (make-options @tokens)))
+(def tournament-attrs [:relationships.stations.links.meta.count :attributes.url :attributes.grandFinalsModifier :attributes.notifyUponMatchesOpen :relationships.organizer.data.type :attributes.hideSeeds :attributes.timestamps.startedAt :attributes.signUpUrl :attributes.timestamps.updatedAt :relationships.participants.links.related :attributes.fullChallongeUrl :attributes.thirdPlaceMatch :relationships.matches.data :relationships.matches.links.meta.count :attributes.splitParticipants :tournament/id :relationships.game.data :type :attributes.acceptAttachments :attributes.timestamps.startsAt :relationships.stations.data :relationships.matches.links.related :relationships.stations.links.related :attributes.private :attributes.timestamps.createdAt :attributes.openSignup :attributes.gameName :server/id :attributes.name :attributes.autoAssignStations :attributes.description :links.self :attributes.onlyStartMatchesWithStations :relationships.organizer.data.id :relationships.community.data :attributes.state :attributes.notifyUponTournamentEnds :relationships.participants.links.meta.count :attributes.oauthApplicationId :attributes.liveImageUrl :attributes.tournamentType :attributes.signupCap :relationships.participants.data :relationships.localizedContents.data :attributes.timestamps.completedAt :attributes.sequentialPairings :attributes.checkInDuration])
 
+(defresolver tournament [{:keys [db]} {:keys [tournament/id]}]
+  {::pc/input #{:tournament/id}
+   ::pc/output tournament-attrs}
+  (log/info db)
+  (def t (xt/pull db '[*] id))
+  t)
 
-
-
-(comment
-  (def scopes ["me"
-               "tournaments:read"
-               "tournaments:write"
-               "matches:read"
-               "matches:write"
-               "participants:read"
-               "participants:write"
-               "attachments:read"
-               "attachments:write"
-               "communities:manage"])
-
-  (refresh-tokens)
-  (comment
-    (defn comunity-oauth-url []
-      "to be pasted into browser once to give my application access to the tf2 community"
-      (str "https://api.challonge.com/oauth/authorize?scope=" (clojure.string/join " " scopes)
-           "&client_id=" client_id
-           "&redirect_uri=" redirect_uri
-           "&response_type=code"))
-    
-    "https://api.challonge.com/oauth/authorize?scope=me tournaments:read tournaments:write matches:read matches:write participants:read participants:write attachments:read attachments:write communities:manage&client_id=3bd276c270e74d5e90d7482425ee86d68a99898b315379a07432787fca67cfc1&redirect_uri=https://oauth.pstmn.io/v1/callback&response_type=code"
-    (def code "6cd00e4fd1fcd36e543c6b7df49ddf6911fab63295031009f0155c78aad99c79")
-    (defn get-oauth-token []
-      (-> (hc/post "https://api.challonge.com/oauth/token"
-                   {:form-params {:grant_type "client_credentials"
-                                  :client_id client_id
-                                  :client_secret client_secret}
-                    :as :json})
-          :body))
-    
-    (defn get-oauth-token-2 [code]
-      (parse-string (:body @(client/request
-                             {:method :post
-                              :url "https://api.challonge.com/oauth/token"
-                              :form-params {:code code
-                                            :client_id client_id
-                                            :grant_type "authorization_code"
-                                            :redirect_uri redirect_uri}}))))
-
-    (spit "token.edn" (pr-str l))
-    
-    (def swage (get-oauth-token-2 code))
-    (def tokens swage)
-    (spit "token.edn" (pr-str tokens))))
-
-(def resolvers [serverid->tournament start-tournament active-tourney])
+(def resolvers [start-tournament delete-tournament
+                
+                active-tourney tournament serverid->tournament tournament])

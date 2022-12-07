@@ -6,7 +6,7 @@
         
         bidi/bidi                           {:mvn/version "2.1.6"}
         com.taoensso/timbre                 {:mvn/version "6.0.1"}
-        com.wsscode/pathom                  {:mvn/version "2.4.0"}
+        com.wsscode/pathom3                 {:mvn/version "2022.10.19-alpha"}
         com.fulcrologic/fulcro              {:mvn/version "3.5.29"}
         com.fulcrologic/fulcro-garden-css   {:mvn/version "3.0.9"}
         com.fulcrologic/semantic-ui-wrapper {:mvn/version "2.0.2"}
