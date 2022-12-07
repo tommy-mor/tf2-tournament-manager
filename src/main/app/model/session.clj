@@ -2,7 +2,7 @@
   (:require
    [app.model.mock-database :as db]
    [com.fulcrologic.guardrails.core :refer [>defn => | ?]]
-   [com.wsscode.pathom.connect :as pc :refer [defresolver defmutation]]
+   [com.wsscode.pathom3.connect.operation :as pco :refer [defresolver defmutation]]
    [taoensso.timbre :as log]
    [clojure.spec.alpha :as s]
    [com.fulcrologic.fulcro.server.api-middleware :as fmw]
@@ -11,7 +11,7 @@
 (defonce account-database (atom {}))
 
 (defresolver current-session-resolver [env input]
-  {::pc/output [{::current-session [:session/valid? :account/name]}]}
+  {::pco/output [{::current-session [:session/valid? :account/name]}]}
   (let [{:keys [account/name session/valid?]} (get-in env [:ring/request :session])]
     (if valid?
       (do
@@ -37,7 +37,7 @@
                 email)))
 
 (defmutation login [{:keys [db] :as env} {:keys [username password]}]
-  {::pc/output [:session/valid? :account/name]}
+  {::pco/output [:session/valid? :account/name]}
   (log/info "Authenticating" username)
   (let [{expected-email    :account/email
          expected-password :account/password} (get-account db username)]
@@ -50,7 +50,7 @@
         (throw (ex-info "Invalid credentials" {:username username}))))))
 
 (defmutation logout [env params]
-  {::pc/output [:session/valid?]}
+  {::pco/output [:session/valid?]}
   (response-updating-session env {:session/valid? false :account/name ""}))
 
 (defn create-user! [{:keys [email password]}]
@@ -60,7 +60,7 @@
                                     :account/password password}]]))
 
 (defmutation signup! [env {:keys [email password] :as input}]
-  {::pc/output [:signup/result]}
+  {::pco/output [:signup/result]}
   (create-user! {:email email :password password})
   {:signup/result "OK"})
 

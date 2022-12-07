@@ -3,7 +3,7 @@
    [app.model.mock-database :as db]
    [app.model.session :as session]
    [com.fulcrologic.guardrails.core :refer [>defn => | ?]]
-   [com.wsscode.pathom.connect :as pc :refer [defresolver defmutation]]
+   [com.wsscode.pathom3.connect.operation :as pco :refer [defresolver defmutation]]
    [taoensso.timbre :as log]
    [clojure.spec.alpha :as s]
    [xtdb.api :as xt]
@@ -13,8 +13,8 @@
 (defresolver all-notes-resolver [{:keys [db] :as env} {:keys [session/account-id]  :as input}]
   {;;GIVEN nothing (e.g. this is usable as a root query)
    ;; I can output all accounts. NOTE: only ID is needed...other resolvers resolve the rest
-   ::pc/input #{:session/account-id}
-   ::pc/output [:notes/all]}
+   ::pco/input [:session/account-id]
+   ::pco/output [:notes/all]}
   (def env env)
   (def i input)
   (::session/current-session i)
@@ -26,7 +26,7 @@
                {:note/id 5 :note/text "i am the third note"}]})
 
 (defmutation edit-note [{:keys [db connection] :as env} {:keys [session/account-id] :as args}]
-  {::pc/output []}
+  {::pco/output []}
   (def a args)
   (let [now (java.util.Date.)
         user (-> env :ring/request :session :account/name)

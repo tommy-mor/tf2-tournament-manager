@@ -2,10 +2,8 @@
   (:require
     [mount.core :refer [defstate]]
     [taoensso.timbre :as log]
-    [com.wsscode.pathom.connect :as pc]
-    [com.wsscode.pathom.connect.runner :as pcr]
-    [com.wsscode.pathom.core :as p]
-    [com.wsscode.common.async-clj :refer [let-chan]]
+    [com.wsscode.pathom3.connect.operation :as pco]
+    [com.wsscode.pathom3.connect.runner :as pcr]
     [clojure.core.async :as async]
     [app.model.account :as acct]
     [app.model.session :as session]
@@ -17,13 +15,13 @@
 
     [xtdb.api :as xt]))
 
-(pc/defresolver index-explorer [env _]
-  {::pc/input  #{:com.wsscode.pathom.viz.index-explorer/id}
-   ::pc/output [:com.wsscode.pathom.viz.index-explorer/index]}
-  {:com.wsscode.pathom.viz.index-explorer/index
-   (-> (get env ::pc/indexes)
-     (update ::pc/index-resolvers #(into {} (map (fn [[k v]] [k (dissoc v ::pc/resolve)])) %))
-     (update ::pc/index-mutations #(into {} (map (fn [[k v]] [k (dissoc v ::pc/mutate)])) %)))})
+(pco/defresolver index-explorer [env _]
+  {::pco/input  [:com.wsscode3.pathom.viz.index-explorer/id]
+   ::pco/output [:com.wsscode3.pathom.viz.index-explorer/index]}
+  {:com.wsscode.pathom3.viz.index-explorer/index
+   (-> (get env ::pco/indexes)
+     (update ::pco/index-resolvers #(into {} (map (fn [[k v]] [k (dissoc v ::pco/resolve)])) %))
+     (update ::pco/index-mutations #(into {} (map (fn [[k v]] [k (dissoc v ::pco/mutate)])) %)))})
 
 (def all-resolvers [acct/resolvers
                     session/resolvers
@@ -46,7 +44,7 @@
 
   If the function returns no env or tx, then the parser will not be called (aborts the parse)"
   [f]
-  {::p/wrap-parser
+  {::pcr/wrap-resolve
    (fn transform-parser-out-plugin-external [parser]
      (fn transform-parser-out-plugin-internal [env tx]
        (let [{:keys [env tx] :as req} (f {:env env :tx tx})]
@@ -84,6 +82,9 @@
       (async/<!! (real-parser env (if trace?
                                     (conj tx :com.wsscode.pathom/trace)
                                     tx))))))
+
+(let [env (pci/register all-resolvers)]
+  {{{{}}}})
 
 (defstate parser
   :start (build-parser db/conn))

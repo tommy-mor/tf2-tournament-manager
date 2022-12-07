@@ -3,7 +3,7 @@
    [app.model.mock-database :as db]
    [app.model.session :as session]
    [com.fulcrologic.guardrails.core :refer [>defn => | ?]]
-   [com.wsscode.pathom.connect :as pc :refer [defresolver defmutation]]
+   [com.wsscode.pathom3.connect.operation :as pco :refer [defresolver defmutation]]
    [taoensso.timbre :as log]
    [clojure.spec.alpha :as s]
    [xtdb.api :as xt]))
@@ -18,7 +18,7 @@
 (defresolver all-users-resolver [{:keys [db]} input]
   {;;GIVEN nothing (e.g. this is usable as a root query)
    ;; I can output all accounts. NOTE: only ID is needed...other resolvers resolve the rest
-   ::pc/output [{:all-accounts [:account/id]}]}
+   ::pco/output [{:all-accounts [:account/id]}]}
   {:all-accounts (mapv
                   (fn [id] {:account/id id})
                   (all-account-ids db))})
@@ -28,12 +28,12 @@
        (xt/pull db subquery id))
 
 (defresolver account-resolver [{:keys [db] :as env} {:account/keys [id]}]
-  {::pc/input  #{:account/id}
-   ::pc/output [:account/email]}
+  {::pco/input  [:account/id]
+   ::pco/output [:account/email]}
   (get-account db id [:account/email]))
 
 (defresolver logged-in-user-id [{:keys [db]} {::session/keys [current-session]}]
-  {::pc/output [:session/account-id]}
+  {::pco/output [:session/account-id]}
   (if (:session/valid? current-session)
     {:session/account-id
      (ffirst (xt/q (xt/db db/conn) '{:find [id]

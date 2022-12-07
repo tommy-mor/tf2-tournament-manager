@@ -17,7 +17,7 @@
   [ast]
   (cond-> (app/default-global-eql-transform ast)
     (-> ast :type #{:root})
-    (update :children conj (eql/expr->ast :com.wsscode.pathom.core/errors))))
+    (update :children conj (eql/expr->ast :com.wsscode.pathom3.core/errors))))
 
 (defonce SPA (app/fulcro-app
                {;; This ensures your client can talk to a CSRF-protected server.

@@ -3,7 +3,7 @@
    [app.model.mock-database :as db]
    [app.model.session :as session]
    [com.fulcrologic.guardrails.core :refer [>defn => | ?]]
-   [com.wsscode.pathom.connect :as pc :refer [defresolver defmutation]]
+   [com.wsscode.pathom3.connect.operation :as pco :refer [defresolver defmutation]]
    [taoensso.timbre :as log]
    [clojure.spec.alpha :as s]
    [xtdb.api :as xt]
@@ -20,7 +20,7 @@
            (xt/submit-tx db/conn [[::xt/delete e]]))))
 
 (defmutation register [{:keys [db]} {:keys [server/game-addr server/api-addr] :as args}]
-  {::pc/output []}
+  {::pco/output []}
                                         ; TODO add existence check for this... 
   (let [id (random-uuid)]
     (when-not (empty? (xt/q db '{:find [(pull e [*])]
@@ -38,7 +38,7 @@
       {:success true :server/id id})))
 
 (defmutation ping [{:keys [db ring/request]} {:keys [server/id] :as args}]
-  {::pc/output []}
+  {::pco/output []}
   (def args args)
   (def id (:server/id args))
   (def db (xt/db db/conn))
@@ -54,15 +54,15 @@
   {:received true})
 
 (defresolver servers-registered [{:keys [db]} _]
-  {::pc/output [{:servers/registered [:server/id]}]}
+  {::pco/output [{:servers/registered [:server/id]}]}
   {:servers/registered
    (vec (for [[id] (xt/q db '{:find [e]
                                      :where [[e :type :server/registration]]})]
           {:server/id id}))})
 
 (defresolver single-server [{:keys [db]} {:keys [server/id]}]
-  {::pc/input #{:server/id}
-   ::pc/output [:server/id :server/game-addr :server/api-addr :server/last-pinged]}
+  {::pco/input [:server/id]
+   ::pco/output [:server/id :server/game-addr :server/api-addr :server/last-pinged]}
   (let [[id game api] (first (xt/q db '{:find [e game api]
                                       :where [[e :xt/id id]
                                               [e :type :server/registration]
@@ -81,8 +81,8 @@
                      keyword))
 
 (defresolver server-players [{:keys [db]} {:keys [server/api-addr]}]
-  {::pc/input #{:server/api-addr}
-   ::pc/output [:server/players]}
+  {::pco/input [:server/api-addr]
+   ::pco/output [:server/players]}
 
   {:server/players (request {:method :get
                              :url (str api-addr "/api/players") })})

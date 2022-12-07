@@ -6,7 +6,7 @@
             [clojure.java.shell :refer [sh]]
             [org.httpkit.client :as client]
             [org.httpkit.sni-client :as sni-client]
-            [com.wsscode.pathom.connect :as pc :refer [defresolver defmutation]]
+            [com.wsscode.pathom3.connect.operation :as pco :refer [defresolver defmutation]]
             [app.model.mock-database :as db]
             [app.model.challonge :as challonge]
             [taoensso.timbre :as log]))
@@ -17,15 +17,15 @@
 (def active-tournaments (atom {}))
 
 (defresolver active-tourney [{:keys [db]} {:keys [server/id]}]
-  {::pc/input #{:server/id}
-   ::pc/output [:server/active-tournament]}
+  {::pco/input [:server/id]
+   ::pco/output [:server/active-tournament]}
   (def t id)
   ;; TODO not sure if this should query the microservice, or just find it in our db
   ;; right now, find one with :attributes.state "underway" or :attributes.state != "finished"
   {:server/active-tournament (@active-tournaments id)})
 
 (defmutation start-tournament [{:keys [db]} {:keys [server/id]}]
-  {::pc/output []}
+  {::pco/output []}
   (let [tid (challonge/make-tournament)]
     (log/info (challonge/ingest-tournament {:server/id id :tournament/id tid})))
   
@@ -33,7 +33,7 @@
 
 (defmutation delete-tournament [{:keys [db]} {sid :server/id
                                               tid :tournament/id}]
-  {::pc/output []}
+  {::pco/output []}
 
   (def tid tid)
   (def sid sid)
@@ -57,8 +57,8 @@
     {:server/id sid}))
 
 (defresolver serverid->tournament [{:keys [db]} {:keys [server/id]}]
-  {::pc/input #{:server/id}
-   ::pc/output [{:server/tournaments [:tournament/id]}]}
+  {::pco/input [:server/id]
+   ::pco/output [{:server/tournaments [:tournament/id]}]}
   {:server/tournaments  (vec (map first (xt/q (xt/db db/conn) '{:find [{:tournament/id e}]
                                                                 :where [[e :type "tournament"]
                                                                         [e :tournament/id id]
@@ -69,8 +69,8 @@
 (def tournament-attrs [:relationships.stations.links.meta.count :attributes.url :attributes.grandFinalsModifier :attributes.notifyUponMatchesOpen :relationships.organizer.data.type :attributes.hideSeeds :attributes.timestamps.startedAt :attributes.signUpUrl :attributes.timestamps.updatedAt :relationships.participants.links.related :attributes.fullChallongeUrl :attributes.thirdPlaceMatch :relationships.matches.data :relationships.matches.links.meta.count :attributes.splitParticipants :tournament/id :relationships.game.data :type :attributes.acceptAttachments :attributes.timestamps.startsAt :relationships.stations.data :relationships.matches.links.related :relationships.stations.links.related :attributes.private :attributes.timestamps.createdAt :attributes.openSignup :attributes.gameName :server/id :attributes.name :attributes.autoAssignStations :attributes.description :links.self :attributes.onlyStartMatchesWithStations :relationships.organizer.data.id :relationships.community.data :attributes.state :attributes.notifyUponTournamentEnds :relationships.participants.links.meta.count :attributes.oauthApplicationId :attributes.liveImageUrl :attributes.tournamentType :attributes.signupCap :relationships.participants.data :relationships.localizedContents.data :attributes.timestamps.completedAt :attributes.sequentialPairings :attributes.checkInDuration])
 
 (defresolver tournament [{:keys [db]} {:keys [tournament/id]}]
-  {::pc/input #{:tournament/id}
-   ::pc/output tournament-attrs}
+  {::pco/input [:tournament/id]
+   ::pco/output tournament-attrs}
   (log/info db)
   (def t (xt/pull db '[*] id))
   t)
