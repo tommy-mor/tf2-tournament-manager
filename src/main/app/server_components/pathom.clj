@@ -42,8 +42,7 @@
                     session/resolvers
                     note/resolvers
                     mge/resolvers
-                    tournament/resolvers
-                    index-explorer ])
+                    tournament/resolvers])
 
 (def log-resolve-plugin
   {::p.plugin/id `log-resolve-plugin
@@ -57,17 +56,27 @@
   (let [plugins [log-resolve-plugin
                  (pbip/env-wrap-plugin #(assoc %
                                                :db (atom (xt/db db-connection))
-                                               :config config))]
+                                               :config config))
+                 pbip/mutation-resolve-params]
         env (->
              {::p.a.eql/parallel? true
               :com.wsscode.pathom3.error/lenient-mode? true}
              
-             (p.plugin/register plugins)
-             (pci/register all-resolvers))
+             (pci/register all-resolvers)
+             (p.plugin/register plugins))
         trace? (not (nil? (System/getProperty "trace")))]
     (fn parser [{:keys [ring/request] :as env'} tx]
-      @(p.a.eql/process (merge env env') (cond-> tx trace?
-                                                 (conj :com.wsscode.pathom3/trace))))))
+      (def tx tx)
+      (let [r @(p.a.eql/process (merge env env') (cond-> tx trace?
+                                                        (conj :com.wsscode.pathom3/trace)))]
+        (def r r)
+        "TODO plugin that prunes/logs errors here!"
+        (comment (-> r
+                     vals first
+                     vals first
+                     Throwable->map
+                     :trace) )
+        r))))
 
 (defstate parser
   :start (build-parser db/conn))

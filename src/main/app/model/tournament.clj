@@ -9,29 +9,45 @@
             [com.wsscode.pathom3.connect.operation :as pco :refer [defresolver defmutation]]
             [app.model.mock-database :as db]
             [app.model.challonge :as challonge]
-            [taoensso.timbre :as log]))
+            [taoensso.timbre :as log]
+            [com.wsscode.pathom3.interface.eql :as p.eql]
+            [app.model.mge-servers :refer [request]]))
 
 (alter-var-root #'org.httpkit.client/*default-client* (fn [_] sni-client/default-client))
 
 ;; TODO replace this
 (def active-tournaments (atom {}))
 
-(defresolver active-tourney [{:keys [db]} {:keys [server/id]}]
-  {::pco/input [:server/id]
+(defresolver active-tourney [{:keys [db]} {:keys [server/id server/api-addr]}]
+  {::pco/input [:server/id :server/api-addr]
    ::pco/output [:server/active-tournament]}
-  (def t id)
+
   ;; TODO not sure if this should query the microservice, or just find it in our db
   ;; right now, find one with :attributes.state "underway" or :attributes.state != "finished"
-  {:server/active-tournament (@active-tournaments id)})
+  {:server/active-tournament (request {:method :get
+                                       :url (str api-addr "/api/current-tournament")})})
 
-(defmutation start-tournament [{:keys [db]} {:keys [server/id]}]
+(defmutation start-tournament [{:keys [db] :as env} {:keys [server/id server/api-addr]}]
   {::pco/output []}
   (let [tid (challonge/make-tournament)]
-    (log/info (challonge/ingest-tournament {:server/id id :tournament/id tid})))
+    (log/info (challonge/ingest-tournament {:server/id id :tournament/id tid}))
 
-  (reset! db (xt/db db/conn))
+    (reset! db (xt/db db/conn))
 
-  {:server/id id})
+    (def id id)
+    (def env env)
+
+    (log/info "api-addr" (pr-str api-addr))
+
+    (def api-addr api-addr)
+    (def tid tid)
+
+    (request {:method :post
+              :url (str api-addr "/api/start-tournament")
+              :body (generate-string {:tournament/id tid})})
+    
+
+    {:server/id id}))
 
 (defmutation delete-tournament [{:keys [db]} {sid :server/id
                                               tid :tournament/id}]
@@ -76,8 +92,7 @@
 (defresolver tournament [{:keys [db]} {:keys [tournament/id]}]
   {::pco/input [:tournament/id]
    ::pco/output tournament-attrs}
-  (def t (xt/pull @db '[*] id))
-  t)
+  (xt/pull @db '[*] id))
 
 (def resolvers [start-tournament delete-tournament
                 

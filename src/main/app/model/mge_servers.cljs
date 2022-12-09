@@ -80,11 +80,14 @@
              [(i :.icon.play) "start tournament"]))
    (doall
     (for [tournament tournaments]
-      (tournament/ui-tournament tournament)))))
+      (if (= (:tournament/id active-tournament)
+             (:tournament/id tournament))
+        (tournament/ui-tournament (assoc tournament :active true))
+        (tournament/ui-tournament tournament))))))
 
 (def ui-server-page (comp/factory ServerPage))
 
-(defsc Server [this {:keys [:server/id :server/last-pinged :server/game-addr] :as props}]
+(defsc Server [this {:keys [:server/id :server/last-pinged :server/game-addr ] :as props}]
   {:query [:server/id :server/last-pinged :server/game-addr]
    :ident :server/id
    :initial-state {}}

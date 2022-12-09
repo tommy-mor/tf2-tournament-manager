@@ -1,6 +1,8 @@
-refactor
-  fix logging
-  fix the indexer thing.. (hopefully get graph)
+fix the indexer thing.. (hopefully get graph) / setup pathom viz
+fix/ask about bug with mutation-resolve params (super cool...)
+     (until he can fix it, I bet it works fine with the non-async resolver..)
+
+send start/stop commands to microservice
   
 server/tournaments needs to be a list of tournaments.
 and maybe server/active-tournament? for if there is one active (to show button).
