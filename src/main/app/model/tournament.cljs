@@ -43,6 +43,7 @@
   (div :.ui.container.segment
        (h3 (:attributes.name props))
        (p (:attributes.tournamentType props))
+       (when (:active props) (b "I AM THE ACTIVE TOURNAMENT"))
        (a {:href (:attributes.fullChallongeUrl props)}
           "link")
        (br)

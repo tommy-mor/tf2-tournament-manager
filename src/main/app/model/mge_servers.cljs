@@ -72,7 +72,7 @@
    (div :.ui.container.segment
         (doall (for [player players]
                  (ui-player player))))
-   (when (not active-tournament)
+   (when (not (:tournament/id active-tournament))
      (button :.ui.button
              {:onClick (fn start []
                          (comp/transact! this

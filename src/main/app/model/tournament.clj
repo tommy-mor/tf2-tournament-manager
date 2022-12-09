@@ -50,12 +50,16 @@
     {:server/id id}))
 
 (defmutation delete-tournament [{:keys [db]} {sid :server/id
-                                              tid :tournament/id}]
+                                              tid :tournament/id
+                                              api-addr :server/api-addr}]
   {::pco/output []}
 
   (def tid tid)
   (def sid sid)
+  (def api-addr api-addr)
   (let [del #(do
+               (request {:method :post
+                         :url (str api-addr "/api/stop-tournament")})
                (xt/await-tx db/conn
                             (xt/submit-tx db/conn
 
