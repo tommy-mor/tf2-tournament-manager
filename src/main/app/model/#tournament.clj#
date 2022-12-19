@@ -1,0 +1,103 @@
+(ns app.model.tournament
+  (:require [xtdb.api :as xt]
+            [hato.client :as hc]
+            [clojure.java.io :as io]
+            [cheshire.core :refer [generate-string parse-string]]
+            [clojure.java.shell :refer [sh]]
+            [org.httpkit.client :as client]
+            [org.httpkit.sni-client :as sni-client]
+            [com.wsscode.pathom3.connect.operation :as pco :refer [defresolver defmutation]]
+            [app.model.mock-database :as db]
+            [app.model.challonge :as challonge]
+            [taoensso.timbre :as log]
+            [com.wsscode.pathom3.interface.eql :as p.eql]
+            [app.model.mge-servers :refer [request]]))
+
+(alter-var-root #'org.httpkit.client/*default-client* (fn [_] sni-client/default-client))
+
+;; TODO replace this
+(def active-tournaments (atom {}))
+
+(defresolver active-tourney [{:keys [db]} {:keys [server/id server/api-addr]}]
+  {::pco/input [:server/id :server/api-addr]
+   ::pco/output [:server/active-tournament]}
+
+  ;; TODO not sure if this should query the microservice, or just find it in our db
+  ;; right now, find one with :attributes.state "underway" or :attributes.state != "finished"
+  {:server/active-tournament (request {:method :get
+                                       :url (str api-addr "/api/current-tournament")})})
+
+(defmutation start-tournament [{:keys [db] :as env} {:keys [server/id server/api-addr]}]
+  {::pco/output []}
+  (let [tid (challonge/make-tournament)]
+    (log/info (challonge/ingest-tournament {:server/id id :tournament/id tid}))
+
+    (reset! db (xt/db db/conn))
+
+    (def id id)
+    (def env env)
+
+    (log/info "api-addr" (pr-str api-addr))
+
+    (def api-addr api-addr)
+    (def tid tid)
+
+    (request {:method :post
+              :url (str api-addr "/api/start-tournament")
+              :body (generate-string {:tournament/id tid})})
+    
+
+    {:server/id id}))
+
+(defmutation delete-tournament [{:keys [db]} {sid :server/id
+                                              tid :tournament/id
+                                              api-addr :server/api-addr}]
+  {::pco/output []}
+
+  (def tid tid)
+  (def sid sid)
+  (def api-addr api-addr)
+  (let [del #(do
+               (request {:method :post
+                         :url (str api-addr "/api/stop-tournament")})
+               ' (xt/await-tx db/conn
+                              (xt/submit-tx db/conn
+
+                                            [[::xt/delete
+                                              (ffirst (xt/q @db
+                                                            '{:find [e]
+                                                              :where [[e :server/id sid]
+                                                                      [e :tournament/id tid]
+                                                                      [e :type "tournament"]]
+                                                              :in [sid tid]} sid tid))]]))
+               (reset! db (xt/db db/conn)))]
+    (try (challonge/delete-tournament! tid)
+         (catch clojure.lang.ExceptionInfo e
+           (def e e)
+           (if (-> e ex-data :status #{404})
+             (del))
+           "epic"))
+                                        ; TODO somehow authorize this request
+    (del)
+    {:server/id sid}))
+
+(defresolver serverid->tournament [{:keys [db]} {:keys [server/id]}]
+  {::pco/input [:server/id]
+   ::pco/output [{:server/tournaments [:tournament/id]}]}
+  {:server/tournaments  (vec (map first (xt/q @db '{:find [{:tournament/id e}]
+                                                    :where [[e :type "tournament"]
+                                                            [e :tournament/id id]
+                                                            [e :server/id sid]]
+                                                    :in [sid]}
+                                              id)))})
+
+(def tournament-attrs [:relationships.stations.links.meta.count :attributes.url :attributes.grandFinalsModifier :attributes.notifyUponMatchesOpen :relationships.organizer.data.type :attributes.hideSeeds :attributes.timestamps.startedAt :attributes.signUpUrl :attributes.timestamps.updatedAt :relationships.participants.links.related :attributes.fullChallongeUrl :attributes.thirdPlaceMatch :relationships.matches.data :relationships.matches.links.meta.count :attributes.splitParticipants :tournament/id :relationships.game.data :type :attributes.acceptAttachments :attributes.timestamps.startsAt :relationships.stations.data :relationships.matches.links.related :relationships.stations.links.related :attributes.private :attributes.timestamps.createdAt :attributes.openSignup :attributes.gameName :server/id :attributes.name :attributes.autoAssignStations :attributes.description :links.self :attributes.onlyStartMatchesWithStations :relationships.organizer.data.id :relationships.community.data :attributes.state :attributes.notifyUponTournamentEnds :relationships.participants.links.meta.count :attributes.oauthApplicationId :attributes.liveImageUrl :attributes.tournamentType :attributes.signupCap :relationships.participants.data :relationships.localizedContents.data :attributes.timestamps.completedAt :attributes.sequentialPairings :attributes.checkInDuration])
+
+(defresolver tournament [{:keys [db]} {:keys [tournament/id]}]
+  {::pco/input [:tournament/id]
+   ::pco/output tournament-attrs}
+  (xt/pull @db '[*] id))
+
+(def resolvers [start-tournament delete-tournament
+                
+                active-tourney serverid->tournament tournament])

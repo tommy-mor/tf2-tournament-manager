@@ -1,3 +1,4 @@
+
 (ns app.model.challonge
   (:require [hato.client :as hc]
             [cheshire.core :refer [generate-string]]
@@ -7,8 +8,13 @@
             [clojure.java.io :as io]
             [app.model.mock-database :as db]))
 
-(def client_id (:client_id (clojure.edn/read-string (slurp "challonge.edn"))))
-(def client_secret (:client_secret (clojure.edn/read-string (slurp "challonge.edn"))))
+;; TODO this wont work on build server...
+
+(def client_id (or (System/getenv "CI")
+                   (:client_id (clojure.edn/read-string (slurp "challonge.edn")))))
+(def client_secret (or
+                    (System/getenv "CI")
+                    (:client_secret (clojure.edn/read-string (slurp "challonge.edn")))))
 (def redirect_uri "https://oauth.pstmn.io/v1/callback")
 (def api-root "https://api.challonge.com/v2")
 
